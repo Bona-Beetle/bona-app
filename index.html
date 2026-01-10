@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bona Beetle PRO | 全物種錄入中樞</title>
+    <title>Bona Beetle PRO | 全生命週期數據中樞</title>
+    <!-- PWA 與 行動端優化 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -14,7 +15,15 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
         :root { --b-gold: #CA8A04; --b-black: #050505; --b-zinc: #18181B; }
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--b-black); color: #E2E8F0; overflow: hidden; height: 100vh; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: var(--b-black); 
+            color: #E2E8F0; 
+            overflow: hidden; 
+            height: 100vh; 
+            -webkit-tap-highlight-color: transparent; 
+            user-select: none;
+        }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .gold-glow { filter: drop-shadow(0 0 15px rgba(202, 138, 4, 0.4)); }
         .bg-blueprint { 
@@ -25,6 +34,7 @@
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        input[type="date"] { color-scheme: dark; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
     </style>
@@ -34,6 +44,7 @@
     <script type="text/babel">
         const { useState, useMemo, useEffect } = React;
 
+        // --- Lucide 圖示組件 ---
         const Icon = ({ name, size = 20, color = "currentColor", className = "" }) => {
             useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
             return <i data-lucide={name} style={{ width: size, height: size, color }} className={className}></i>;
@@ -41,47 +52,52 @@
 
         const App = () => {
             const [hasStarted, setHasStarted] = useState(false);
-            const [activeTab, setActiveTab] = useState('home'); 
+            const [activeTab, setActiveTab] = useState('home');
             const [loading, setLoading] = useState(false);
             const [saveStatus, setSaveStatus] = useState('idle');
 
             // --- 核心連動配置 ---
-            const WEBHOOK_URL = "https://hook.us2.make.com/413n4t0rk61dcoan2hiqu2v4jmnrw2d5";
-            const logoUrl = "./logo.png";
+            const WEBHOOK_URL = "https://hook.us2.make.com/kwoy9fsvno7bblvcrs07476h945b414l";
+            const logoUrl = "./logo.png"; 
             const backupLogo = "https://atom-bunny-8f6.notion.site/image/attachment%3A3a5ee000-88a9-42c5-842f-34619d1099fc%3ABEETLE_LOGO.jpg?table=block&id=2df51f87-ec7c-80fe-a0ef-f3054ac7e61e&spaceId=c7751f87-ec7c-818c-8570-00032fe627bd&width=1420&userId=&cache=v2";
 
-            // --- 全物種 ID 生成邏輯 ---
-            const [speciesPrefix, setSpeciesPrefix] = useState('PGK');
-            const [serial, setSerial] = useState(Math.floor(Math.random() * 900) + 100);
-            const currentYear = useMemo(() => new Date().getFullYear().toString().slice(-2), []);
-            const bonaID = useMemo(() => `${speciesPrefix.toUpperCase()}-${currentYear}-${serial}`, [speciesPrefix, currentYear, serial]);
+            // --- 參數資料庫 ---
+            const substrateAOptions = ["W木屑", "AK木屑", "P2木屑", "T木屑", "S木屑", "廢木屑", "B木屑", "S土", "其他", "雲芝菌", "袖珍菌", "小糕菌"];
+            const substrateBOptions = ["無", ...substrateAOptions];
+            const boosterOptions = ["無添加", "10g/10L", "20g/10L", "極限組"];
+            const containerOptions = ["布丁杯", "塑膠方盒", "塑膠圓筒", "日規雙孔", "日規單孔", "祈星方盒", "整理箱", "貝殼箱"];
+            const volumeOptions = ["100-140ml", "500ml", "750-800ml", "1000ml", "1400-1500ml", "2200-2400ml", "3200ml", "4L", "6L", "10L"];
 
-            // --- 錄入數據狀態 (移除所有預測變數) ---
+            // --- ID 生成邏輯 ---
+            const [prefix, setPrefix] = useState('PGK');
+            const [serial, setSerial] = useState(Math.floor(Math.random() * 900) + 100);
+            const year = useMemo(() => new Date().getFullYear().toString().slice(-2), []);
+            const bonaID = useMemo(() => `${prefix.toUpperCase()}-${year}-${serial}`, [prefix, year, serial]);
+
+            // --- 狀態表單 ---
             const [entry, setEntry] = useState({
-                weight: '',
-                sub1: 'W木屑',
-                sub2: '無',
+                weight: '', 
+                sub1: 'W木屑', 
+                sub2: '無', 
                 booster: '無添加',
+                container: '塑膠圓筒',
+                volume: '1000ml',
+                hatchDate: new Date().toISOString().split('T')[0],
                 date: new Date().toISOString().split('T')[0]
             });
 
-            // QR Code 生成
+            // QR Code URL (加入時間戳強制更新)
             const qrUrl = useMemo(() => {
                 const baseUrl = "https://bonabeetle.io/id/";
                 return `https://chart.googleapis.com/chart?cht=qr&chs=350x350&chl=${encodeURIComponent(baseUrl + bonaID)}&chld=M|1&t=${Date.now()}`;
             }, [bonaID]);
 
-            // 同步至 Make.com -> Notion
+            // 同步函數
             const handleSync = async () => {
                 if (!entry.weight) return;
                 setLoading(true);
                 try {
-                    const payload = { 
-                        ...entry, 
-                        id: bonaID, 
-                        species: speciesPrefix.toUpperCase(),
-                        timestamp: new Date().toISOString()
-                    };
+                    const payload = { ...entry, id: bonaID, species: prefix.toUpperCase() };
                     const res = await fetch(WEBHOOK_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -92,22 +108,30 @@
                         setTimeout(() => {
                             setSaveStatus('idle');
                             setActiveTab('home');
-                            setSerial(Math.floor(Math.random() * 900) + 100); // 錄完即更換新序號
-                            setEntry(prev => ({ ...prev, weight: '' }));
+                            setSerial(Math.floor(Math.random() * 900) + 100); // 同步完成自動更換隨機序號
+                            setEntry(prev => ({ ...prev, weight: '' })); // 清空重量以便下次錄入
                             setLoading(false);
                         }, 2000);
+                    } else {
+                        setLoading(false);
                     }
-                } catch (e) { setLoading(false); }
+                } catch (e) { 
+                    setLoading(false); 
+                }
             };
 
+            // 啟動 Splash 畫面
             if (!hasStarted) return (
-                <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 space-y-12 animate-slide-up">
-                    <img src={logoUrl} onError={(e) => {e.target.src = backupLogo}} className="w-24 h-24 border-2 border-[#CA8A04] p-1 bg-black rounded-3xl shadow-2xl" />
-                    <div className="text-center space-y-2">
-                        <h1 className="text-4xl font-black italic text-white tracking-tighter uppercase">Bona <span className="text-[#CA8A04]">Command</span></h1>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-[0.5em] font-bold italic">Pure_Management_v13.0</p>
+                <div className="min-h-screen flex flex-col items-center justify-center p-8 space-y-12 animate-slide-up">
+                    <div className="relative">
+                        <img src={logoUrl} onError={(e) => {e.target.src = backupLogo}} className="w-24 h-24 border-2 border-[#CA8A04] p-1 bg-black rounded-3xl shadow-2xl z-10 relative" alt="Logo" />
+                        <div className="absolute inset-0 bg-[#CA8A04] blur-3xl opacity-20 animate-pulse"></div>
                     </div>
-                    <button onClick={() => setHasStarted(true)} className="w-full max-w-xs bg-gradient-to-r from-yellow-700 via-[#CA8A04] to-yellow-700 text-black font-black py-6 rounded-3xl text-xs uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all">啟動錄入中樞</button>
+                    <div className="text-center space-y-2">
+                        <h1 className="text-4xl font-black italic text-white tracking-tighter uppercase leading-none font-mono">Bona <span className="text-[#CA8A04]">Command</span></h1>
+                        <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-bold italic">Life_Cycle_Management_V14.0</p>
+                    </div>
+                    <button onClick={() => setHasStarted(true)} className="w-full max-w-xs bg-gradient-to-r from-yellow-700 via-[#CA8A04] to-yellow-700 text-black font-black py-6 rounded-3xl text-[11px] uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all italic">啟動科研錄入系統</button>
                 </div>
             );
 
@@ -115,10 +139,11 @@
                 <div className="h-full max-w-lg mx-auto w-full flex flex-col relative px-6">
                     <div className="bg-blueprint"></div>
                     
+                    {/* 載入中遮罩 */}
                     {loading && (
                         <div className="fixed inset-0 bg-black/95 z-[300] flex flex-col items-center justify-center backdrop-blur-md">
                             <div className="w-16 h-16 border-4 border-[#CA8A04] border-t-transparent rounded-full animate-spin mb-6"></div>
-                            <p className="text-[10px] text-[#CA8A04] font-mono tracking-[0.5em] animate-pulse uppercase italic">Syncing_to_Notion_Vault...</p>
+                            <p className="text-[10px] text-[#CA8A04] font-mono tracking-[0.5em] animate-pulse uppercase italic font-bold">Syncing_Life_Cycle_Data...</p>
                         </div>
                     )}
 
@@ -127,84 +152,120 @@
                             <div className="space-y-6 animate-slide-up">
                                 <header className="flex justify-between items-center">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] text-green-500 font-black uppercase italic animate-pulse tracking-widest">● Database: Ready</p>
-                                        <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Bona_Hub</h2>
+                                        <p className="text-[10px] text-green-500 font-black uppercase italic animate-pulse tracking-widest">● System: Live</p>
+                                        <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase font-mono leading-none">Bona_Hub</h2>
                                     </div>
-                                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 text-[#CA8A04] shadow-xl"><Icon name="layout-dashboard" size={24} /></div>
+                                    <img src={logoUrl} onError={(e) => {e.target.src = backupLogo}} className="w-10 h-10 object-contain rounded-xl border border-white/10 shadow-xl" />
                                 </header>
 
                                 <div className="bg-gradient-to-br from-[#CA8A04] to-yellow-800 p-8 rounded-[3rem] text-black shadow-2xl relative overflow-hidden group active:scale-95 transition-transform" onClick={() => setActiveTab('entry')}>
                                     <div className="relative z-10 space-y-4">
-                                        <h3 className="text-xl font-black italic uppercase leading-none tracking-tighter flex items-center gap-2"><Icon name="plus-circle" size={20} /> 快速秤重錄入</h3>
-                                        <p className="text-xs font-bold leading-relaxed opacity-90 max-w-[240px]">支援全物種編碼。自動識別物種前綴，數據直接歸檔至日誌庫。</p>
+                                        <h3 className="text-xl font-black italic uppercase leading-none tracking-tighter flex items-center gap-2"><Icon name="plus-circle" size={20} /> 一鍵數位錄入</h3>
+                                        <p className="text-xs font-bold leading-relaxed opacity-90 max-w-[220px]">
+                                            自動分配 ID。支持生日、容器規格、混合食材與登大蟲設定。
+                                        </p>
                                         <div className="bg-black text-white px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl inline-block italic">啟動 Ingest</div>
                                     </div>
                                     <Icon name="tag" size={120} className="absolute -bottom-8 -right-8 opacity-10 rotate-12" />
+                                </div>
+                                
+                                <div className="p-8 bg-[#18181B] rounded-[2.8rem] border border-white/5 space-y-6 shadow-2xl">
+                                    <div className="flex justify-between items-center mb-4"><h4 className="text-[10px] text-gray-600 font-black uppercase tracking-widest italic leading-none font-mono">Database_Status</h4><Icon name="shield-check" size={14} className="text-zinc-800" /></div>
+                                    <div className="grid grid-cols-3 gap-4 text-center border-t border-white/5 pt-6 font-mono">
+                                        <div><p className="text-[8px] text-gray-500 uppercase font-black mb-1">血統</p><p className="text-xl font-black text-white italic">05</p></div>
+                                        <div><p className="text-[8px] text-gray-500 uppercase font-black mb-1">總數</p><p className="text-xl font-black text-white italic">124</p></div>
+                                        <div><p className="text-[8px] text-gray-500 uppercase font-black mb-1">已錄</p><p className="text-xl font-black text-[#CA8A04] italic">32</p></div>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'entry' && (
-                            <div className="space-y-6 animate-slide-up pb-10">
-                                <header className="text-center space-y-1 pb-4">
+                            <div className="space-y-6 animate-slide-up">
+                                <header className="text-center space-y-1 pb-4 border-b border-white/5">
                                     <div className="w-12 h-12 bg-[#CA8A04] rounded-2xl mx-auto flex items-center justify-center text-black shadow-xl mb-2"><Icon name="plus" size={24} /></div>
-                                    <h2 className="text-2xl font-black italic text-white uppercase tracking-tighter">Digital Entry</h2>
+                                    <h2 className="text-2xl font-black italic text-white uppercase tracking-tighter leading-none font-mono pt-2">Digital_Ingest</h2>
                                 </header>
 
                                 {saveStatus === 'success' ? (
                                     <div className="bg-green-500/10 border border-green-500/20 p-12 rounded-[3.5rem] text-center animate-slide-up">
                                         <Icon name="check-circle" size={72} color="#22C55E" className="mx-auto mb-6" />
                                         <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none">Sync Successful</h3>
-                                        <p className="text-xs text-gray-500 mt-2 font-bold tracking-widest uppercase">個體 {bonaID} 紀錄已同步</p>
+                                        <p className="text-xs text-gray-500 mt-2 font-bold tracking-widest uppercase italic">個體 {bonaID} 資料已入庫</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-6">
-                                        {/* 物種與 ID 設定 */}
+                                    <div className="space-y-6 pb-20">
+                                        {/* 1. ID 與 生日設定 */}
                                         <div className="bg-black/60 p-8 rounded-[2.5rem] border border-white/5 space-y-6 shadow-inner text-center">
-                                            <div className="space-y-3 w-full">
-                                                <label className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] italic">1. 物種簡稱 / Prefix</label>
-                                                <input value={speciesPrefix} onChange={e=>setSpeciesPrefix(e.target.value.toUpperCase())} className="w-full bg-zinc-900 border border-white/5 p-4 rounded-2xl text-lg font-black text-[#CA8A04] text-center outline-none focus:border-[#CA8A04]" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2 text-left">
+                                                    <label className="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em] italic ml-1">Species / 物種</label>
+                                                    <input value={prefix} onChange={e=>setPrefix(e.target.value.toUpperCase())} className="w-full bg-zinc-900 border border-white/5 p-4 rounded-2xl text-lg font-black text-[#CA8A04] outline-none text-center" />
+                                                </div>
+                                                <div className="space-y-2 text-left">
+                                                    <label className="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em] italic ml-1">Hatch / 挖出日</label>
+                                                    <input type="date" value={entry.hatchDate} onChange={e=>setEntry({...entry, hatchDate: e.target.value})} className="w-full bg-zinc-900 border border-white/5 p-4 rounded-2xl text-[11px] font-black text-white outline-none" />
+                                                </div>
                                             </div>
-                                            <img key={bonaID} src={qrUrl} alt="Bona QR" className="w-40 h-40 border-4 border-white/10 rounded-2xl shadow-2xl gold-glow" />
-                                            <div className="flex items-center gap-4 bg-black/40 px-8 py-3 rounded-full border border-[#CA8A04]/20 shadow-inner">
-                                                <span className="text-2xl font-black text-white italic tracking-widest font-mono">{bonaID}</span>
-                                                <button onClick={() => setSerial(Math.floor(Math.random() * 900) + 100)} className="text-[#CA8A04] p-1 active:rotate-180 transition-transform"><Icon name="refresh-cw" size={18} /></button>
+                                            
+                                            <div className="flex flex-col items-center gap-4 bg-black/40 p-6 rounded-3xl border border-[#CA8A04]/20 shadow-inner">
+                                                <img key={bonaID} src={qrUrl} alt="Bona QR" className="w-32 h-32 border-4 border-white/5 rounded-2xl shadow-2xl gold-glow mb-2" />
+                                                <div className="flex items-center gap-4 w-full justify-between">
+                                                    <span className="text-2xl font-black text-white italic tracking-widest font-mono">{bonaID}</span>
+                                                    <button onClick={() => setSerial(Math.floor(Math.random() * 900) + 100)} className="text-[#CA8A04] p-2 bg-black/40 rounded-xl active:rotate-180 transition-transform"><Icon name="refresh-cw" size={18} /></button>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* 重量錄入 */}
+                                        {/* 2. 數據錄入主表單 */}
                                         <div className="bg-[#18181B] p-8 rounded-[2.8rem] border border-[#CA8A04]/10 space-y-6 shadow-2xl relative overflow-hidden">
-                                            <div className="bg-black/80 py-10 rounded-[2rem] border border-[#CA8A04]/10 text-center relative">
-                                                <p className="text-[10px] text-[#CA8A04] font-black uppercase mb-1 tracking-widest italic animate-pulse font-mono tracking-tighter">Scale_Value_Ingest</p>
+                                            <div className="bg-black/80 py-10 rounded-[2rem] border border-[#CA8A04]/10 text-center relative overflow-hidden">
+                                                <p className="text-[10px] text-[#CA8A04] font-black uppercase mb-1 tracking-widest italic animate-pulse font-mono tracking-tighter">Larva_Weight_Scale</p>
                                                 <input type="number" placeholder="00.00" value={entry.weight} onChange={e=>setEntry({...entry, weight: e.target.value})} className="bg-transparent text-8xl font-black text-white text-center outline-none w-full italic tabular-nums placeholder:text-zinc-900" />
-                                                <span className="absolute bottom-6 right-10 text-[10px] text-gray-700 font-black uppercase tracking-widest">Gram</span>
+                                                <span className="absolute bottom-6 right-10 text-[10px] text-gray-700 font-black uppercase tracking-widest font-mono">Gram</span>
                                             </div>
 
-                                            <div className="space-y-4">
+                                            <div className="space-y-5">
+                                                {/* 容器與容量 */}
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] text-gray-600 font-black uppercase ml-1 italic tracking-tighter flex items-center gap-2"><Icon name="layers" size={12} color="#CA8A04" /> 基質設定 / Substrate</label>
+                                                    <label className="text-[10px] text-gray-600 font-black uppercase ml-1 italic tracking-tighter flex items-center gap-2"><Icon name="box" size={12} color="#CA8A04" /> 容器規格 / Container Spec</label>
                                                     <div className="grid grid-cols-2 gap-3">
-                                                        <select value={entry.sub1} onChange={e=>setEntry({...entry, sub1: e.target.value})} className="bg-black border border-white/5 p-4 rounded-2xl text-[11px] text-white outline-none appearance-none font-bold">
-                                                            {["W木屑", "AK木屑", "P2木屑", "T木屑", "S木屑", "廢木屑", "B木屑", "S土", "其他", "雲芝菌", "袖珍菌", "小糕菌"].map(opt => <option key={opt}>{opt}</option>)}
+                                                        <select value={entry.container} onChange={e=>setEntry({...entry, container: e.target.value})} className="bg-black border border-white/5 p-4 rounded-2xl text-[11px] text-white outline-none appearance-none font-bold">
+                                                            {containerOptions.map(opt => <option key={opt}>{opt}</option>)}
                                                         </select>
-                                                        <select value={entry.sub2} onChange={e=>setEntry({...entry, sub2: e.target.value})} className="bg-black border border-white/5 p-4 rounded-2xl text-[11px] text-gray-500 outline-none appearance-none italic">
-                                                            {["無", "W木屑", "AK木屑", "P2木屑", "T木屑", "S木屑", "廢木屑", "B木屑", "S土", "其他", "雲芝菌", "袖珍菌", "小糕菌"].map(opt => <option key={opt}>{opt}</option>)}
+                                                        <select value={entry.volume} onChange={e=>setEntry({...entry, volume: e.target.value})} className="bg-black border border-white/5 p-4 rounded-2xl text-[11px] text-gray-400 outline-none appearance-none italic">
+                                                            {volumeOptions.map(opt => <option key={opt}>{opt}</option>)}
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div className="bg-[#CA8A04]/5 p-5 rounded-2xl border border-[#CA8A04]/20 flex items-center justify-between">
+
+                                                {/* 食材組合 */}
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] text-gray-600 font-black uppercase ml-1 italic tracking-tighter flex items-center gap-2"><Icon name="layers" size={12} color="#CA8A04" /> 食材混合比例 / Substrate Mix</label>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <select value={entry.sub1} onChange={e=>setEntry({...entry, sub1: e.target.value})} className="bg-black border border-white/5 p-4 rounded-2xl text-[11px] text-white outline-none appearance-none font-bold">
+                                                            {substrateAOptions.map(opt => <option key={opt}>{opt}</option>)}
+                                                        </select>
+                                                        <select value={entry.sub2} onChange={e=>setEntry({...entry, sub2: e.target.value})} className="bg-black border border-white/5 p-4 rounded-2xl text-[11px] text-gray-500 outline-none appearance-none italic">
+                                                            {substrateBOptions.map(opt => <option key={opt}>{opt}</option>)}
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                {/* 添加劑 */}
+                                                <div className="bg-[#CA8A04]/5 p-5 rounded-2xl border border-[#CA8A04]/20 flex items-center justify-between group">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-xl bg-[#CA8A04] flex items-center justify-center text-black shadow-lg"><Icon name="zap" size={20} /></div>
-                                                        <p className="text-xs font-black text-white italic">登大蟲劑量</p>
+                                                        <p className="text-xs font-black text-white italic uppercase tracking-tighter font-mono">Booster Dose</p>
                                                     </div>
-                                                    <select value={entry.booster} onChange={e=>setEntry({...entry, booster: e.target.value})} className="bg-black border border-[#CA8A04]/40 p-3 rounded-xl text-xs text-[#CA8A04] font-black outline-none appearance-none">
-                                                        <option>無添加</option><option>10g/10L</option><option>20g/10L</option><option>極限組</option>
+                                                    <select value={entry.booster} onChange={e=>setEntry({...entry, booster: e.target.value})} className="bg-black border border-[#CA8A04]/40 p-3 rounded-xl text-xs text-[#CA8A04] font-black outline-none appearance-none font-mono tracking-tighter">
+                                                        {boosterOptions.map(opt => <option key={opt}>{opt}</option>)}
                                                     </select>
                                                 </div>
                                             </div>
 
-                                            <button onClick={handleSync} disabled={!entry.weight || loading} className="w-full bg-[#CA8A04] disabled:opacity-20 text-black font-black py-6 rounded-3xl text-xs uppercase tracking-[0.3em] shadow-[0_0_40px_rgba(202,138,4,0.3)] active:scale-95 transition-all flex items-center justify-center gap-3 italic">
-                                                <Icon name="database" size={16} /> {loading ? "傳輸中..." : "註冊身分並同步雲端庫"}
+                                            <button onClick={handleSync} disabled={!entry.weight || loading} className="w-full bg-[#CA8A04] disabled:opacity-20 text-black font-black py-6 rounded-3xl text-[11px] uppercase tracking-[0.3em] shadow-[0_0_40px_rgba(202,138,4,0.3)] active:scale-95 transition-all flex items-center justify-center gap-3 italic font-mono uppercase tracking-widest shadow-yellow-900/40">
+                                                <Icon name="database" size={16} /> {loading ? "SYNCHRONIZING..." : "SYNCHRONIZE_TO_VAULT"}
                                             </button>
                                         </div>
                                     </div>
@@ -212,30 +273,32 @@
                             </div>
                         )}
                         
-                        {['vault', 'records', 'lab'].includes(activeTab) && (
+                        {/* 功能預留區 */}
+                        {['records', 'analytics', 'vault'].includes(activeTab) && (
                             <div className="flex flex-col items-center justify-center pt-32 space-y-6 animate-slide-up text-center px-10">
                                 <Icon name="construction" size={64} color="#27272A" />
                                 <div className="space-y-2">
-                                    <h3 className="text-lg font-black uppercase tracking-widest text-zinc-500">數據深掘模組</h3>
-                                    <p className="text-[10px] text-zinc-700 font-mono italic leading-relaxed tracking-tighter uppercase pt-2">Connecting_to_Bona_Cloud_Sync...</p>
+                                    <h3 className="text-lg font-black uppercase tracking-widest text-zinc-500 font-mono italic">Module_Syncing</h3>
+                                    <p className="text-[10px] text-zinc-700 font-mono italic leading-relaxed tracking-tighter uppercase pt-2">Connecting_to_Bona_Mainframe...</p>
                                 </div>
                                 <button onClick={()=>setActiveTab('home')} className="bg-[#CA8A04]/10 text-[#CA8A04] px-10 py-3 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#CA8A04]/20 hover:bg-[#CA8A04] transition-all">返回控制中心</button>
                             </div>
                         )}
                     </main>
 
+                    {/* 底部導覽欄 */}
                     <nav className="fixed bottom-0 left-0 right-0 p-8 z-[100] pointer-events-none max-w-lg mx-auto">
                         <div className="h-24 bg-[#18181B]/95 backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] pointer-events-auto flex items-center justify-around px-4">
-                            <button onClick={()=>setActiveTab('home')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'home' ? 'text-[#CA8A04] scale-110' : 'text-zinc-700'}`}><Icon name="layout-dashboard" size={24} /><span className="text-[8px] font-black uppercase tracking-widest">Hub</span></button>
-                            <button onClick={()=>setActiveTab('records')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'records' ? 'text-[#CA8A04] scale-110' : 'text-zinc-700'}`}><Icon name="history" size={24} /><span className="text-[8px] font-black uppercase tracking-widest">Logs</span></button>
+                            <button onClick={()=>setActiveTab('home')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'home' ? 'text-[#CA8A04] scale-110 font-bold' : 'text-zinc-700'}`}><Icon name="layout-dashboard" size={24} /><span className="text-[8px] font-black uppercase tracking-widest font-mono">Hub</span></button>
+                            <button onClick={()=>setActiveTab('records')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'records' ? 'text-[#CA8A04] scale-110 font-bold' : 'text-zinc-700'}`}><Icon name="history" size={24} /><span className="text-[8px] font-black uppercase tracking-widest font-mono">Logs</span></button>
                             
                             <button onClick={()=>setActiveTab('entry')} className="w-20 h-20 bg-gradient-to-br from-yellow-700 to-[#CA8A04] rounded-full -mt-16 border-[10px] border-[#050505] flex items-center justify-center text-black shadow-[0_20px_50px_rgba(202,138,4,0.5)] active:scale-90 transition-all relative">
                                 <Icon name="plus" size={36} />
                                 <div className="absolute inset-0 rounded-full animate-ping bg-[#CA8A04]/20 -z-10"></div>
                             </button>
 
-                            <button onClick={()=>setActiveTab('lab')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'lab' ? 'text-[#CA8A04] scale-110' : 'text-zinc-700'}`}><Icon name="microscope" size={24} /><span className="text-[8px] font-black uppercase tracking-widest">Lab</span></button>
-                            <button onClick={()=>setActiveTab('vault')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'vault' ? 'text-[#CA8A04] scale-110' : 'text-zinc-700'}`}><Icon name="layers" size={24} /><span className="text-[8px] font-black uppercase tracking-widest">Vault</span></button>
+                            <button onClick={()=>setActiveTab('analytics')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'analytics' ? 'text-[#CA8A04] scale-110 font-bold' : 'text-zinc-700'}`}><Icon name="microscope" size={24} /><span className="text-[8px] font-black uppercase tracking-widest font-mono">Lab</span></button>
+                            <button onClick={()=>setActiveTab('vault')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'vault' ? 'text-[#CA8A04] scale-110 font-bold' : 'text-zinc-700'}`}><Icon name="layers" size={24} /><span className="text-[8px] font-black uppercase tracking-widest font-mono">Vault</span></button>
                         </div>
                     </nav>
                 </div>
