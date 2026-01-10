@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bona Beetle PRO | 全能繁育中樞</title>
+    
+    <!-- PWA 與行動端優化 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#050505">
+
+    <!-- 核心框架載入 (React, Tailwind, Lucide Core) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 使用 Lucide Core 代替 Lucide React 以提高單檔案穩定性 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
+        
+        :root {
+            --b-gold: #CA8A04;
+            --b-black: #050505;
+            --b-zinc: #18181B;
+        }
+
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: var(--b-black); 
+            color: #E2E8F0;
+            overflow: hidden;
+            height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .gold-glow { filter: drop-shadow(0 0 8px rgba(202, 138, 4, 0.4)); }
+        
+        .bg-blueprint {
+            position: fixed; inset: 0; z-index: -1;
+            background-size: 30px 30px;
+            background-image: linear-gradient(to right, rgba(202, 138, 4, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(202, 138, 4, 0.03) 1px, transparent 1px);
+        }
+
+        .animate-fade-up { animation: fadeUp 0.5s ease-out forwards; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+        .scan-line { animation: scan 2.5s infinite; }
+        
+        .tab-active { color: var(--b-gold); transform: scale(1.05); }
+
+        /* 輸入框移除預設樣式 */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+        /* 圖示基礎樣式 */
+        .lucide { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- 封裝 Icon 元件以確保在 React 中渲染正確 ---
+        const Icon = ({ name, className = "w-5 h-5", size = 20, color = "currentColor", fill = "none" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+
+            return (
+                <span className={`inline-block ${className}`} style={{ width: size, height: size }}>
+                    <i 
+                        data-lucide={name} 
+                        style={{ width: size, height: size, color: color }} 
+                        strokeWidth="2"
+                        {...(fill !== "none" ? { fill: fill } : {})}
+                    ></i>
+                </span>
+            );
+        };
+
+        const App = () => {
+            // --- 狀態管理 ---
+            const [hasStarted, setHasStarted] = useState(false);
+            const [activeTab, setActiveTab] = useState('home'); 
+            const [showQR, setShowQR] = useState(false);
+            const [loading, setLoading] = useState(false);
+            const [aiMode, setAiMode] = useState('larva');
+
+            const logoUrl = "https://atom-bunny-8f6.notion.site/image/attachment%3A3a5ee000-88a9-42c5-842f-34619d1099fc%3ABEETLE_LOGO.jpg?table=block&id=2df51f87-ec7c-80fe-a0ef-f3054ac7e61e&spaceId=c7751f87-ec7c-818c-8570-00032fe627bd&width=1420&userId=&cache=v2";
+
+            // --- 模擬數據 ---
+            const envData = { temp: 22.8, humidity: 78, status: "Optimal" };
+            const selectedBeetle = { id: "PGK-26-EX-001", name: "黑金剛 ‧ 龍魂", generation: "F3", father: "MASTER-120", mother: "QUEEN-PGK-09" };
+
+            useEffect(() => {
+                if (window.lucide) lucide.createIcons();
+            }, [activeTab, hasStarted, showQR]);
+
+            // --- 視圖 1: 數據快錄門戶 ---
+            const LaunchPortal = () => (
+                <div className="min-h-screen flex flex-col items-center justify-center p-8 space-y-12 animate-fade-up">
+                    <div className="relative">
+                        <img src={logoUrl} className="w-24 h-24 border-2 border-[#CA8A04] p-1 bg-black rounded-3xl shadow-2xl z-10 relative" alt="Bona Logo" />
+                        <div className="absolute inset-0 bg-[#CA8A04] blur-3xl opacity-20 animate-pulse"></div>
+                    </div>
+                    <div className="text-center space-y-2">
+                        <h1 className="text-3xl font-black italic text-white tracking-tighter uppercase">Bona <span className="text-[#CA8A04]">Intelligence</span></h1>
+                        <p className="text-[10px] text-gray-500 uppercase tracking-[0.4em] font-bold italic">Smart Measurement Ingestion</p>
+                    </div>
+                    <div className="w-full max-w-xs space-y-4">
+                        <button 
+                            onClick={() => {setLoading(true); setTimeout(()=>setHasStarted(true), 1200);}}
+                            className="w-full bg-gradient-to-r from-yellow-700 via-[#CA8A04] to-yellow-700 text-black font-black py-6 rounded-3xl text-xs uppercase tracking-[0.4em] shadow-[0_0_40px_rgba(202,138,4,0.3)] active:scale-95 transition-all flex flex-col items-center gap-2"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Icon name="scale" size={20} /> 
+                                <span>啟動一鍵數據錄入</span>
+                            </div>
+                            <span className="text-[8px] opacity-60 font-mono tracking-widest">AUTO_SYNC_ENABLED</span>
+                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={() => setShowQR(true)} className="flex-1 bg-white/5 border border-white/10 py-4 rounded-2xl flex flex-col items-center gap-1 active:bg-white/10">
+                                <Icon name="qr-code" size={18} color="#CA8A04" />
+                                <span className="text-[8px] text-gray-500 font-black uppercase">Scan Tag</span>
+                            </button>
+                            <button className="flex-1 bg-white/5 border border-white/10 py-4 rounded-2xl flex flex-col items-center gap-1">
+                                <Icon name="refresh-cw" size={18} color="#3B82F6" />
+                                <span className="text-[8px] text-gray-500 font-black uppercase">Sync Cloud</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // --- 視圖 2: Command Hub (主儀表板) ---
+            const HomeDashboard = () => (
+                <div className="space-y-6 animate-fade-up pb-24">
+                    <header className="flex justify-between items-center">
+                        <div className="space-y-1">
+                            <p className="text-[10px] text-green-500 font-black uppercase italic animate-pulse tracking-widest">● System: Live</p>
+                            <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Command Hub</h2>
+                        </div>
+                        <div onClick={() => setShowQR(true)} className="w-12 h-12 bg-[#CA8A04]/10 rounded-2xl flex items-center justify-center border border-[#CA8A04]/30 text-[#CA8A04] active:bg-[#CA8A04]/20 transition-all">
+                            <Icon name="qr-code" size={24} />
+                        </div>
+                    </header>
+
+                    {/* 環境監控 */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-[#18181B] p-5 rounded-3xl border border-white/5 flex items-center gap-4 relative overflow-hidden">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                <Icon name="thermometer" size={20} />
+                            </div>
+                            <div>
+                                <p className="text-[8px] text-gray-600 font-bold uppercase">溫控 A 室</p>
+                                <p className="text-xl font-black text-white">{envData.temp}°C</p>
+                            </div>
+                        </div>
+                        <div className="bg-[#18181B] p-5 rounded-3xl border border-white/5 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                                <Icon name="droplet" size={20} />
+                            </div>
+                            <div>
+                                <p className="text-[8px] text-gray-600 font-bold uppercase">濕度</p>
+                                <p className="text-xl font-black text-white">{envData.humidity}%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* AI Lab 快速入口 */}
+                    <div className="bg-gradient-to-br from-[#CA8A04] to-yellow-800 p-8 rounded-[3rem] text-black shadow-2xl relative overflow-hidden group">
+                        <div className="relative z-10 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Icon name="zap" size={18} fill="currentColor" />
+                                <h3 className="text-xl font-black italic uppercase tracking-tighter leading-none">Bona AI Laboratory</h3>
+                            </div>
+                            <p className="text-xs font-bold leading-relaxed opacity-90 max-w-[220px]">瞬時對標全台 30 筆真實樣本。精確計算 BGI/BPI 指標。</p>
+                            <button onClick={() => setActiveTab('ai')} className="bg-black text-white px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">開始對標分析</button>
+                        </div>
+                        <img src={logoUrl} className="absolute -bottom-8 -right-8 w-44 h-44 opacity-20 grayscale transform group-hover:scale-110 transition-transform duration-700" />
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center px-2">
+                            <h4 className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Active Specimen</h4>
+                            <Icon name="trending-up" size={14} color="#CA8A04" />
+                        </div>
+                        <div className="space-y-3">
+                            {[{id:"PGK-龍魂", status:"S級 ‧ 穩定", w:"52.4g"}, {id:"PGK-S-09", status:"鑑定中", w:"35.2g"}].map((b, i) => (
+                                <div key={i} className="bg-[#18181B]/50 p-4 rounded-3xl border border-white/5 flex justify-between items-center active:bg-white/10 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-black border border-white/5 flex items-center justify-center text-xl">🪲</div>
+                                        <div><div className="text-xs font-bold text-white uppercase">{b.id}</div><div className="text-[9px] text-gray-500 font-mono italic">{b.status}</div></div>
+                                    </div>
+                                    <div className="text-right"><p className="text-sm font-black text-white italic">{b.w}</p><p className="text-[8px] text-[#CA8A04] font-bold uppercase">Verified</p></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // --- 視圖 3: Lineage Vault ---
+            const VaultView = () => (
+                <div className="space-y-8 animate-fade-up pb-24">
+                    <header className="text-center space-y-1">
+                        <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase underline decoration-[#CA8A04] decoration-4 underline-offset-8 leading-none">Lineage Vault</h2>
+                        <p className="text-[10px] text-gray-500 font-mono tracking-[0.4em] uppercase pt-2">Bloodline_Tracing_V1.0</p>
+                    </header>
+                    <div className="relative p-8 bg-[#18181B] rounded-[3rem] border border-white/5 overflow-hidden shadow-inner">
+                        <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: 'radial-gradient(#CA8A04 1px, transparent 1px)', backgroundSize: '25px 25px'}}></div>
+                        <div className="relative z-10 space-y-12">
+                            <div className="grid grid-cols-4 gap-2 text-center">
+                                {["LEGEND-118", "LINE-B-M", "MASTER-EX", "QUEEN-Y"].map((n, i) => (
+                                    <div key={i} className="bg-black/60 p-2 rounded-xl border border-white/5 shadow-lg">
+                                        <p className="text-[6px] text-gray-600 uppercase font-black mb-1 italic">{i%2===0?"G-Father":"G-Mother"}</p>
+                                        <p className="text-[8px] font-bold text-[#CA8A04] truncate uppercase">{n}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-black/80 p-5 rounded-2xl border border-blue-900/30 text-center shadow-2xl relative">
+                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-600 px-2 py-0.5 rounded text-[6px] text-white font-black uppercase">Sire</div>
+                                    <p className="text-xs font-black text-white italic">{selectedBeetle.father} (♂)</p>
+                                </div>
+                                <div className="bg-black/80 p-5 rounded-2xl border border-pink-900/30 text-center shadow-2xl relative">
+                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-pink-600 px-2 py-0.5 rounded text-[6px] text-white font-black uppercase">Dam</div>
+                                    <p className="text-xs font-black text-white italic">{selectedBeetle.mother} (♀)</p>
+                                </div>
+                            </div>
+                            <div className="bg-gradient-to-b from-[#CA8A04] to-yellow-900 p-8 rounded-3xl text-black text-center shadow-[0_0_50px_rgba(202,138,4,0.3)] relative">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-[#CA8A04] px-5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-[#CA8A04]/40 italic">Active Specimen</div>
+                                <p className="text-2xl font-black italic tracking-tighter uppercase leading-none mb-1">{selectedBeetle.id}</p>
+                                <p className="text-[10px] font-black uppercase opacity-60 font-mono tracking-widest">GEN: CBF3 | MATURATION: 420D</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // --- 視圖 4: Substrate Lab ---
+            const LabView = () => (
+                <div className="space-y-8 animate-fade-up pb-24">
+                    <header className="text-center space-y-1">
+                        <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase underline decoration-[#CA8A04] decoration-4 underline-offset-8 leading-none">Substrate Lab</h2>
+                        <p className="text-[10px] text-gray-500 font-mono tracking-[0.4em] uppercase pt-2">Performance_Benchmarking</p>
+                    </header>
+                    <div className="bg-[#18181B] p-8 rounded-[3rem] border border-white/5 space-y-10 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#CA8A04]/5 blur-3xl rounded-full"></div>
+                        <h3 className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2 italic">
+                            <Icon name="flask-conical" size={16} color="#CA8A04" /> 轉化效率增益對比 (Lift %)
+                        </h3>
+                        <div className="space-y-10">
+                            {[
+                                { name: "木屑 + 登大蟲 (+B)", val: 3.98, lift: "+9.2%", color: "#CA8A04" },
+                                { name: "純發酵木屑 (Normal)", val: 3.62, lift: "BASE", color: "#4B5563" },
+                                { name: "秀珍菌瓶 (Fungus)", val: 3.42, lift: "-5.5%", color: "#E2E8F0" }
+                            ].map((item, i) => (
+                                <div key={i} className="space-y-2">
+                                    <div className="flex justify-between items-end px-1"><span className="text-[9px] text-gray-400 font-black uppercase">{item.name}</span><span className={`text-[10px] font-black italic ${item.lift.includes('+') ? 'text-green-500' : 'text-gray-600'}`}>{item.lift}</span></div>
+                                    <div className="h-5 w-full bg-black rounded-full overflow-hidden flex items-center px-1 border border-white/5 shadow-inner">
+                                        <div className="h-2 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(202,138,4,0.3)]" style={{ width: `${(item.val/5)*100}%`, backgroundColor: item.color }}></div>
+                                        <span className="ml-3 text-[10px] font-mono font-black text-white italic">{item.val}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // --- 全域渲染組件 ---
+            if (!hasStarted) return <LaunchPortal />;
+
+            return (
+                <div className="flex flex-col h-full max-w-lg mx-auto w-full relative">
+                    <div className="bg-blueprint"></div>
+
+                    {/* QR 掃描模擬層 */}
+                    {showQR && (
+                        <div className="fixed inset-0 bg-black/98 z-[300] flex flex-col items-center justify-center p-10 animate-fade-up">
+                            <button onClick={() => setShowQR(false)} className="absolute top-10 right-10 text-gray-500 hover:text-white">
+                                <Icon name="x" size={32} />
+                            </button>
+                            <div className="w-72 h-72 border-2 border-[#CA8A04] rounded-[3rem] relative flex items-center justify-center overflow-hidden shadow-[0_0_50px_rgba(202,138,4,0.2)]">
+                                <div className="absolute inset-x-0 h-1 bg-[#CA8A04] shadow-[0_0_25px_#CA8A04] scan-line"></div>
+                                <Icon name="qr-code" size={120} color="white" className="opacity-20" />
+                            </div>
+                            <div className="text-center mt-12 space-y-4">
+                                <p className="text-[10px] text-[#CA8A04] font-black uppercase tracking-[0.5em] animate-pulse italic">Scanning_Bona_Digital_Tag...</p>
+                                <p className="text-gray-600 italic text-[9px] max-w-[200px] leading-relaxed mx-auto font-black uppercase">個體識別成功後將自動抓取數據並同步雲端</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 主內容區 */}
+                    <main className="flex-1 px-7 pt-12 pb-32 overflow-y-auto no-scrollbar relative z-10">
+                        {activeTab === 'home' && <HomeDashboard />}
+                        {activeTab === 'vault' && <VaultView />}
+                        {activeTab === 'lab' && <LabView />}
+                        {['logs', 'ai'].includes(activeTab) && (
+                            <div className="flex flex-col items-center justify-center pt-32 space-y-8 animate-fade-up">
+                                <div className="w-24 h-24 bg-[#18181B] rounded-[2.5rem] flex items-center justify-center border border-white/5 shadow-2xl relative animate-pulse">
+                                    <Icon name="zap" size={40} color="#CA8A04" fill="#CA8A04" />
+                                    <div className="absolute inset-0 rounded-[2.5rem] border border-[#CA8A04] animate-ping opacity-20"></div>
+                                </div>
+                                <div className="text-center space-y-2">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-gray-500">AI 運算引擎同步中</h3>
+                                    <p className="text-[9px] text-gray-700 font-mono uppercase tracking-tighter leading-none italic">Calibrating_PGK_Growth_Model_v4.2...</p>
+                                </div>
+                                <button onClick={()=>setActiveTab('home')} className="bg-[#CA8A04]/10 text-[#CA8A04] px-12 py-3 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#CA8A04]/20 hover:bg-[#CA8A04] hover:text-black transition-all">返回儀表板</button>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* 底部導覽欄 (App Core Navigation) */}
+                    <div className="fixed bottom-0 left-0 right-0 p-8 z-[100] pointer-events-none max-w-lg mx-auto">
+                        <nav className="h-20 bg-[#18181B]/95 backdrop-blur-3xl border border-white/10 rounded-[2.8rem] shadow-[0_25px_80px_rgba(0,0,0,0.9)] pointer-events-auto flex items-center justify-around px-4">
+                            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'home' ? 'tab-active' : 'text-zinc-700'}`}>
+                                <Icon name="layout-dashboard" size={22} className={activeTab === 'home' ? 'gold-glow' : ''} />
+                                <span className="text-[7px] font-black uppercase tracking-widest">Hub</span>
+                            </button>
+                            <button onClick={() => setActiveTab('vault')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'vault' ? 'tab-active' : 'text-zinc-700'}`}>
+                                <Icon name="users" size={22} className={activeTab === 'vault' ? 'gold-glow' : ''} />
+                                <span className="text-[7px] font-black uppercase tracking-widest">Vault</span>
+                            </button>
+                            {/* 核心錄入按鈕 */}
+                            <button onClick={() => setActiveTab('ai')} className="w-18 h-18 bg-gradient-to-br from-yellow-700 to-[#CA8A04] rounded-full -mt-12 border-[8px] border-[#050505] flex items-center justify-center text-black shadow-[0_20px_40px_rgba(202,138,4,0.4)] active:scale-90 transition-all relative">
+                                <Icon name="zap" size={32} fill="currentColor" />
+                                <div className="absolute inset-0 rounded-full animate-ping bg-[#CA8A04]/30 -z-10"></div>
+                            </button>
+                            <button onClick={() => setActiveTab('lab')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'lab' ? 'tab-active' : 'text-zinc-700'}`}>
+                                <Icon name="flask-conical" size={22} className={activeTab === 'lab' ? 'gold-glow' : ''} />
+                                <span className="text-[7px] font-black uppercase tracking-widest">Lab</span>
+                            </button>
+                            <button onClick={() => setActiveTab('logs')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'logs' ? 'tab-active' : 'text-zinc-700'}`}>
+                                <Icon name="clipboard-list" size={22} className={activeTab === 'logs' ? 'gold-glow' : ''} />
+                                <span className="text-[7px] font-black uppercase tracking-widest">Logs</span>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
