@@ -132,6 +132,7 @@
         .reminder-card:active { transform: scale(0.98); }
         .border-danger { border-color: #ef4444; }
         .border-warning { border-color: #d4af37; }
+        .border-safe { border-color: #10b981; }
         .info-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); color: #ccc; }
     </style>
 </head>
@@ -215,7 +216,7 @@
                 </div>
             </main>
 
-            <!-- TAB 2: BUTLER (任務管家 - 換土提醒 - 完整資訊版) -->
+            <!-- TAB 2: BUTLER (任務管家 - 換土提醒 - 全顯示版) -->
             <main id="tab-butler" class="app-view hidden">
                 <div class="space-y-6">
                     <div class="flex justify-between items-end">
@@ -223,7 +224,6 @@
                             <h3 class="text-bona-gold text-[10px] font-black uppercase tracking-[0.2em]">換土工作單 (Worklist)</h3>
                             <span class="text-[9px] text-gray-500">週期設定：60 天</span>
                         </div>
-                        <!-- EXPORT BUTTON -->
                         <button onclick="window.exportCensusCSV()" class="flex items-center gap-1 bg-white/10 border border-white/20 px-3 py-1 rounded-lg hover:bg-white/20">
                             <i class="fa-solid fa-file-csv text-bona-gold text-xs"></i>
                             <span class="text-[9px] text-white font-bold">匯出報表</span>
@@ -247,12 +247,21 @@
                         </div>
                         <div id="reminder-list-upcoming" class="space-y-3"></div>
                     </div>
+                    
+                    <!-- 後續排程 (Future - SHOW ALL) -->
+                    <div id="reminder-future-container" class="hidden">
+                        <div class="flex items-center gap-2 mb-2 text-green-500">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider">後續排程 (Future)</span>
+                        </div>
+                        <div id="reminder-list-future" class="space-y-3"></div>
+                    </div>
 
                     <!-- 空狀態 (Empty State) -->
                     <div id="reminder-empty" class="hidden flex flex-col items-center justify-center py-12 opacity-50">
                         <i class="fa-solid fa-check-circle text-4xl text-green-500 mb-4"></i>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">目前沒有急迫的換土任務</p>
-                        <p class="text-[9px] text-gray-600 mt-2">若清單空白，請確認是否已錄入數據或網路是否連通</p>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">清單完全空白</p>
+                        <p id="debug-msg" class="text-[9px] text-gray-600 mt-2 text-center w-full px-4">請確認 Make.com JSON 設定正確</p>
                     </div>
                     
                     <div class="text-center mt-8">
@@ -487,7 +496,11 @@
             if (typeof val === 'object') {
                 if (val.type === 'text' && val.text) return val.text.content || '--'; 
                 if (val.type === 'rich_text' && Array.isArray(val.rich_text)) return val.rich_text.length > 0 ? val.rich_text[0].plain_text : '--';
-                if (Array.isArray(val) && val.length > 0 && val[0].text) return val[0].text.content; 
+                if (val.type === 'title' && Array.isArray(val.title)) return val.title.length > 0 ? val.title[0].plain_text : '--'; 
+                if (Array.isArray(val) && val.length > 0) {
+                    if(val[0].plain_text) return val[0].plain_text;
+                    if(val[0].text) return val[0].text.content;
+                }
                 if (val.type === 'select' && val.select) return val.select.name; 
                 if (val.select && val.select.name) return val.select.name; 
                 if (val.type === 'number') return val.number; 
@@ -523,21 +536,18 @@
         window.updateDashboardUI = function() { 
             if(!currentUser) return; 
             const percent = Math.min((quotaInfo.used / quotaInfo.max) * 100, 100); 
-            
             const barFill = document.getElementById('quota-bar-fill');
             if(barFill) {
                 barFill.style.width = `${percent}%`; 
                 if (percent >= 90) barFill.className = 'quota-bar h-full bg-bona-danger'; 
                 else barFill.className = 'quota-bar h-full bg-bona-gold'; 
             }
-
             const textEl = document.getElementById('quota-text');
             if(textEl) {
                 textEl.innerText = `${quotaInfo.used} / ${quotaInfo.max}`;
             }
         }
         
-        // FIXED: handleLogin - Logs error to console if element missing
         window.handleLogin = function() { 
             const inputEl = document.getElementById('login-license');
             if(!inputEl) { console.error("Login input missing"); return; }
@@ -546,7 +556,6 @@
             window.verifyLicense(key, false); 
         }
 
-        // FIXED: verifyLicense - Lenient Auth & Error Handling
         window.verifyLicense = async function(key, silent) { 
             if (!silent) window.showLoading(true); 
             try { 
@@ -555,18 +564,14 @@
                 let data; 
                 try { data = JSON.parse(text); } 
                 catch (e) { 
-                    // Fallback for non-JSON response from Make
                     if (text.includes('Accepted') || response.ok) data = { status: 'Active', key_found: key, max: 50, used: 0 }; 
                     else throw new Error(`Auth Error: ${text}`); 
                 } 
                 if (data.json) { try { data = JSON.parse(data.json); } catch(e){} } 
                 if (Array.isArray(data)) data = data[0]; 
                 
-                // LENIENT CHECK: Trust Status 'Active' OR Key Match
                 const status = window.cleanData(data.status || data.Status);
                 const isActive = status.toLowerCase().includes('active');
-                
-                // Fallback Key Check
                 const rawKey = data.key_found || data['License Key'] || data.id; 
                 const keyMatch = String(window.cleanData(rawKey)).trim() === String(key).trim(); 
                 
@@ -587,47 +592,31 @@
             finally { if(!silent) window.showLoading(false); } 
         }
 
-        // === EXPORT CSV FUNCTION ===
         window.exportCensusCSV = function() {
-            // Get currently displayed items from DOM or cache? 
-            // Better to use a dedicated variable if available, or re-parse from cache.
-            // Since refreshTaskButler fetches fresh data, we can store it in a temporary variable there.
-            // OR simpler: Export knownBeetlesCache (for local) or fetch again.
-            
-            // Let's use knownBeetlesCache since we just want a dump of known items + details.
-            // BUT refreshTaskButler (Cloud) returns richer data than cache.
-            // So we need to store the cloud result.
             if(!window.lastCensusData || window.lastCensusData.length === 0) {
                  window.showNotification('請先整理清單以取得最新數據', 'error');
                  return;
             }
-
             const headers = ["ID", "Last Check", "Next Change", "Weight", "Container", "Substrate", "Additive"];
             const csvRows = [headers.join(",")];
-
             window.lastCensusData.forEach(item => {
-                const id = window.cleanData(item.id || item.title);
-                const lastCheck = window.cleanData(item.date || item.date_check);
-                // Calc Next
+                const id = window.cleanData(item.id || item.title || item.ID);
+                const lastCheck = window.cleanData(item.date || item.date_check || item.Date_Check);
                 let nextDate = '';
-                if(lastCheck !== '--') {
+                if(lastCheck !== '--' && lastCheck !== '') {
                     const d = new Date(lastCheck);
                     d.setDate(d.getDate() + 60);
                     nextDate = d.toISOString().split('T')[0];
                 }
-                
                 const row = [
-                    id,
-                    lastCheck,
-                    nextDate,
-                    window.cleanData(item.weight),
-                    `${window.cleanData(item.box_type)} ${window.cleanData(item.box_vol)}`,
-                    `${window.cleanData(item.sub_main)} + ${window.cleanData(item.sub_sec)}`,
-                    window.cleanData(item.booster)
+                    id, lastCheck, nextDate,
+                    window.cleanData(item.weight || item.Weight),
+                    `${window.cleanData(item.box_type || item.Box_Type)} ${window.cleanData(item.box_vol || item.Box_Vol)}`,
+                    `${window.cleanData(item.sub_main || item.Sub_Main)} + ${window.cleanData(item.sub_sec || item.Sub_Sec)}`,
+                    window.cleanData(item.booster || item.Booster)
                 ];
                 csvRows.push(row.join(","));
             });
-
             const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.join("\n");
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -643,17 +632,21 @@
 
             const listOverdue = document.getElementById('reminder-list-overdue');
             const listUpcoming = document.getElementById('reminder-list-upcoming');
+            const listFuture = document.getElementById('reminder-list-future'); // V2.8
+            const debugMsg = document.getElementById('debug-msg');
             
             listOverdue.innerHTML = '';
             listUpcoming.innerHTML = '';
+            listFuture.innerHTML = ''; // V2.8
             safeAddClass('reminder-overdue-container', 'hidden');
             safeAddClass('reminder-upcoming-container', 'hidden');
+            safeAddClass('reminder-future-container', 'hidden'); // V2.8
             safeAddClass('reminder-empty', 'hidden');
 
             window.showLoading(true);
 
             try {
-                // CLOUD FETCH (Using 'census' type)
+                // CLOUD FETCH
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -669,7 +662,12 @@
                 else if (data.data) items = data.data;
                 else if (Array.isArray(data)) items = data;
                 
-                // Store for Export
+                // V2.5 DEBUG INFO
+                window.showNotification(`雲端同步：${items.length} 筆資料`, items.length > 0 ? 'success' : 'error');
+                if(items.length === 0 && debugMsg) {
+                    debugMsg.innerText = "Make.com 回傳資料為空 (0 items)。請檢查 JSON 對應。";
+                }
+
                 window.lastCensusData = items;
 
                 let hasItems = false;
@@ -677,34 +675,59 @@
                 const CYCLE_DAYS = 60; 
 
                 if(Array.isArray(items)) {
-                    items.sort((a, b) => new Date(a.date || a.date_check) - new Date(b.date || b.date_check));
+                    items.sort((a, b) => {
+                         const dateA = new Date(a.date || a.date_check || a.Date_Check || 0);
+                         const dateB = new Date(b.date || b.date_check || b.Date_Check || 0);
+                         return dateA - dateB;
+                    });
 
                     items.forEach(beetle => {
-                        const checkDateStr = window.cleanData(beetle.date || beetle.date_check);
-                        const lastDate = new Date(checkDateStr);
-                        const beetleId = window.cleanData(beetle.id || beetle.title);
+                        // V2.5 SUPER COMPATIBLE MAPPING
+                        const checkDateStr = window.cleanData(
+                            beetle.date || beetle.date_check || beetle.Date_Check || 
+                            beetle.Date || beetle['Last Check']
+                        );
                         
-                        // Extract Details for Card
-                        const weight = window.cleanData(beetle.weight || '--');
-                        const box = `${window.cleanData(beetle.box_type || '--')} ${window.cleanData(beetle.box_vol || '')}`;
-                        const sub = `${window.cleanData(beetle.sub_main || '--')} + ${window.cleanData(beetle.sub_sec || '--')}`;
-                        const booster = window.cleanData(beetle.booster || '--');
+                        const lastDate = new Date(checkDateStr);
+                        // V2.5 ID FALLBACK + V2.6 Safety
+                        let rawId = window.cleanData(beetle.id || beetle.title || beetle.ID || beetle.Name);
+                        let beetleId = String(rawId).trim();
+                        if (!beetleId || beetleId === '--' || beetleId === '') beetleId = '❓ 未知 ID';
+                        
+                        // Details
+                        const weight = window.cleanData(beetle.weight || beetle.Weight || '--');
+                        const boxType = window.cleanData(beetle.box_type || beetle.Box_Type || '--');
+                        const boxVol = window.cleanData(beetle.box_vol || beetle.Box_Vol || '');
+                        const subMain = window.cleanData(beetle.sub_main || beetle.Sub_Main || '--');
+                        const subSec = window.cleanData(beetle.sub_sec || beetle.Sub_Sec || '--');
+                        const booster = window.cleanData(beetle.booster || beetle.Booster || '--');
 
-                        if (isNaN(lastDate) || !beetleId || beetleId === '--') return;
+                        const box = `${boxType} ${boxVol}`;
+                        const sub = `${subMain} + ${subSec}`;
 
+                        // V2.8: Force show even if date invalid (for debugging)
                         const nextDate = new Date(lastDate);
                         nextDate.setDate(nextDate.getDate() + CYCLE_DAYS);
-                        const nextDateStr = nextDate.toISOString().split('T')[0];
                         
-                        const diffTime = nextDate - today;
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                        let nextDateStr = '無紀錄';
+                        let diffDays = 999;
+                        let statusHtml = '';
+
+                        if (!isNaN(lastDate)) {
+                            nextDateStr = nextDate.toISOString().split('T')[0];
+                            const diffTime = nextDate - today;
+                            diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                            statusHtml = diffDays < 0 ? `逾期 ${Math.abs(diffDays)} 天` : `剩 ${diffDays} 天`;
+                        } else {
+                            statusHtml = "日期錯誤";
+                        }
 
                         // Card Template
                         const cardHtml = `
                             <div class="flex justify-between items-start mb-2">
-                                <div class="text-white font-bold font-mono text-lg">${beetleId}</div>
+                                <div class="text-bona-gold font-black font-mono text-xl">${beetleId}</div>
                                 <div class="text-[10px] font-bold px-2 py-1 rounded bg-black/50 border border-white/10 text-gray-300">
-                                    ${diffDays < 0 ? `逾期 ${Math.abs(diffDays)} 天` : `剩 ${diffDays} 天`}
+                                    ${statusHtml}
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-2 text-[10px] text-gray-400 mb-2">
@@ -719,20 +742,27 @@
                             </div>
                         `;
 
+                        // V2.8: UNFILTERED VIEW
+                        hasItems = true;
                         if (diffDays < 0) {
-                            hasItems = true;
                             safeRemoveClass('reminder-overdue-container', 'hidden');
                             const item = document.createElement('div');
                             item.className = 'glass-panel p-4 rounded-xl reminder-card border-danger bg-red-900/10 mb-3';
                             item.innerHTML = cardHtml;
                             listOverdue.appendChild(item);
                         } else if (diffDays <= 14) {
-                            hasItems = true;
                             safeRemoveClass('reminder-upcoming-container', 'hidden');
                             const item = document.createElement('div');
                             item.className = 'glass-panel p-4 rounded-xl reminder-card border-warning mb-3';
                             item.innerHTML = cardHtml;
                             listUpcoming.appendChild(item);
+                        } else {
+                            // V2.8: SHOW FUTURE
+                            safeRemoveClass('reminder-future-container', 'hidden');
+                            const item = document.createElement('div');
+                            item.className = 'glass-panel p-4 rounded-xl reminder-card border-safe mb-3 opacity-80';
+                            item.innerHTML = cardHtml;
+                            listFuture.appendChild(item);
                         }
                     });
                 }
@@ -743,7 +773,7 @@
 
             } catch(e) {
                 console.error(e);
-                window.showNotification('同步失敗，請稍後再試', 'error');
+                window.showNotification('同步失敗: ' + e.message, 'error');
                 safeRemoveClass('reminder-empty', 'hidden');
             } finally {
                 window.showLoading(false);
@@ -751,6 +781,7 @@
         }
 
         window.fetchBeetleData = async function(id) { 
+            // V2.8: Allow clicking unknown to inspect
             if (!currentUser) return window.showNotification('請先登入', 'error'); 
             const targetUser = currentRealId || currentUser; 
             window.showLoading(true); 
@@ -768,11 +799,9 @@
                 
                 if (record && (record.id || (history.length > 0 && history[0].id))) { 
                     const consolidatedRecord = { ...normalize(history[0]), ...normalize(record) }; 
-                    // CACHE UPDATE for REMINDERS
                     if (consolidatedRecord.id && consolidatedRecord.date_check) {
                         updateLocalBeetleCache(window.cleanData(consolidatedRecord.id), window.cleanData(consolidatedRecord.date_check));
                     }
-
                     historyDataCache = history; currentDetailData = consolidatedRecord; 
                     window.populateDetailView(consolidatedRecord); window.renderHistoryList(history); window.calculateGrowth(consolidatedRecord, history); 
                     window.switchView('detail'); safeRemoveClass('view-detail', 'hidden'); document.getElementById('search-id').value = ''; 
@@ -792,18 +821,60 @@
                 const targetUser = currentRealId || currentUser;
                 window.closeNewEntryModal(); window.showLoading(true);
                 const fullId = window.updateIDPreview();
-                // Cache Update
                 const checkDate = window.getDomVal('new-check-date') || new Date().toISOString().split('T')[0];
                 updateLocalBeetleCache(fullId, checkDate);
 
                 localStorage.setItem('last_prefix', window.getDomVal('id-prefix')); localStorage.setItem('last_year', window.getDomVal('id-year')); localStorage.setItem('last_batch', window.getDomVal('id-batch')); localStorage.setItem('last_seq', window.getDomVal('id-seq')); localStorage.setItem('last_sire', window.getDomVal('new-sire')); localStorage.setItem('last_dam', window.getDomVal('new-dam'));
                 
-                const newRecord = { id: fullId, userId: targetUser, date_check: checkDate, date_hatch: window.getDomVal('new-hatch-date') || new Date().toISOString().split('T')[0], generation: (window.getDomVal('new-gen') || '').toUpperCase(), gender: window.getDomVal('new-gender') || 'Unknown', status: window.getDomVal('new-status') || 'Larva', sire_size: window.getDomVal('new-sire') || 'N/A', dam_size: window.getDomVal('new-dam') || 'N/A', weight: parseFloat(window.getDomVal('new-weight') || 0), box_type: window.getDomVal('new-box-type'), box_vol: window.getDomVal('new-box-vol'), sub_main: window.getDomVal('new-sub-main'), sub_sec: window.getDomVal('new-sub-sec'), booster: window.getDomVal('new-booster') };
+                const newRecord = { 
+                    id: fullId, userId: targetUser, 
+                    date_check: checkDate, 
+                    date_hatch: window.getDomVal('new-hatch-date') || new Date().toISOString().split('T')[0], 
+                    generation: (window.getDomVal('new-gen') || '').toUpperCase(), 
+                    // V2.5 SAFE DEFAULTS
+                    gender: 'Unknown', 
+                    status: 'Larva', 
+                    sire_size: window.getDomVal('new-sire') || 'N/A', 
+                    dam_size: window.getDomVal('new-dam') || 'N/A', 
+                    weight: parseFloat(window.getDomVal('new-weight') || 0), 
+                    box_type: window.getDomVal('new-box-type'), 
+                    box_vol: window.getDomVal('new-box-vol'), 
+                    sub_main: window.getDomVal('new-sub-main'), 
+                    sub_sec: window.getDomVal('new-sub-sec'), 
+                    booster: window.getDomVal('new-booster') 
+                };
                 const payload = { type: 'growth', mode: 'new', ...newRecord };
                 const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const text = await response.text(); let data; try { data = JSON.parse(text); } catch(e) { if(text.includes('Accepted') || response.ok) { data = { status: 'success' }; } else { throw new Error(`伺服器回應錯誤`); } }
-                if (response.ok) { window.showNotification(`錄入成功: ${fullId}`, 'success'); quotaInfo.used += 1; window.updateDashboardUI(); const nextSeq = parseInt(document.getElementById('id-seq').value) + 1; document.getElementById('id-seq').value = nextSeq.toString().padStart(3, '0'); window.updateIDPreview(); historyDataCache = [newRecord]; currentDetailData = newRecord; window.populateDetailView(newRecord); window.renderHistoryList([newRecord]); window.calculateGrowth(newRecord, []); window.switchView('detail'); safeRemoveClass('view-detail', 'hidden'); setTimeout(() => window.openQRModal(fullId), 500); } else throw new Error(`HTTP ${response.status}`);
-            } catch (error) { window.showNotification(`錄入錯誤: ${error.message}`, 'error'); } finally { window.showLoading(false); }
+                const text = await response.text(); 
+                
+                // V2.5 ROBUST ERROR HANDLING
+                let data; 
+                try { data = JSON.parse(text); } 
+                catch(e) { 
+                    if(text.includes('Accepted') || response.ok) { data = { status: 'success' }; } 
+                    else { throw new Error(`錄入失敗: ${text.substring(0,50)}`); } 
+                }
+                
+                if (response.ok) { 
+                    window.showNotification(`錄入成功: ${fullId}`, 'success'); 
+                    quotaInfo.used += 1; 
+                    window.updateDashboardUI(); 
+                    const nextSeq = parseInt(document.getElementById('id-seq').value) + 1; 
+                    document.getElementById('id-seq').value = nextSeq.toString().padStart(3, '0'); 
+                    window.updateIDPreview(); 
+                    historyDataCache = [newRecord]; 
+                    currentDetailData = newRecord; 
+                    window.populateDetailView(newRecord); 
+                    window.renderHistoryList([newRecord]); 
+                    window.calculateGrowth(newRecord, []); 
+                    window.switchView('detail'); 
+                    safeRemoveClass('view-detail', 'hidden'); 
+                    setTimeout(() => window.openQRModal(fullId), 500); 
+                } else throw new Error(`HTTP ${response.status}`);
+            } catch (error) { 
+                console.error(error);
+                window.showNotification(error.message, 'error'); 
+            } finally { window.showLoading(false); }
         }
 
         window.handleUpdateSubmit = async function(e) {
@@ -814,7 +885,6 @@
             window.closeUpdateModal(); window.showLoading(true);
             const id = window.getDomVal('update-id'); const weight = window.getDomVal('update-weight'); const checkDate = window.getDomVal('update-date');
             
-            // Cache Update
             updateLocalBeetleCache(id, checkDate);
 
             let sub = window.getDomVal('update-sub'); let subSec = window.getDomVal('update-sub-sec'); let boxType = window.getDomVal('update-box-type'); let boxVol = window.getDomVal('update-box-vol'); let booster = window.getDomVal('update-booster');
@@ -826,7 +896,6 @@
         window.logout = function() { localStorage.removeItem('bona_user_key'); localStorage.removeItem('bona_user_id'); currentUser = null; location.reload(); }
         window.handleManualSearch = async function() { if (!currentUser) return window.showNotification('請先登入', 'error'); let id = document.getElementById('search-id').value.trim().toUpperCase(); const cleanInput = id.replace(/[^A-Z0-9]/g, ''); if (cleanInput.length === 7 && /^\d+$/.test(cleanInput)) { id = `D-${cleanInput.substring(0, 2)}-${cleanInput.substring(2, 4)}-${cleanInput.substring(4)}`; window.showNotification(`自動修正 ID 為: ${id}`, 'success'); } else if (cleanInput.length >= 8) { const suffix = cleanInput.slice(-7); const prefix = cleanInput.slice(0, -7); id = `${prefix}-${suffix.substring(0, 2)}-${suffix.substring(2, 4)}-${suffix.substring(4)}`; } if (!id) return window.showNotification('請輸入編號', 'error'); await window.fetchBeetleData(id); }
         
-        // SAFE MODAL CLOSE FUNCTIONS
         window.closeUpdateModal = function() { safeAddClass('modal-update', 'hidden'); }
         window.closeNewEntryModal = function() { safeAddClass('modal-new-entry', 'hidden'); }
         window.closeQRModal = function() { safeAddClass('modal-qr', 'hidden'); }
