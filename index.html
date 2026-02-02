@@ -22,7 +22,7 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <!-- QRCode Generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- Chart.js (Optional for future) -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script>
@@ -132,6 +132,7 @@
         .reminder-card:active { transform: scale(0.98); }
         .border-danger { border-color: #ef4444; }
         .border-warning { border-color: #d4af37; }
+        .info-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); color: #ccc; }
     </style>
 </head>
 <body class="font-sans antialiased text-base">
@@ -174,7 +175,7 @@
                 </div>
                 <div class="px-5">
                     <div class="flex justify-between text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-widest">
-                        <span>Quota Status</span>
+                        <span>Quota: <span id="quota-text" class="text-white">--/--</span></span>
                         <a href="https://bonabeetle.com/lite" target="_blank" class="text-bona-gold"><i class="fa-solid fa-plus-circle"></i> 增加額度</a>
                     </div>
                     <div class="bg-gray-800 rounded-full h-3 w-full border border-gray-700 relative overflow-hidden shadow-inner"><div id="quota-bar-fill" class="bg-bona-gold h-full quota-bar" style="width: 0%;"></div></div>
@@ -214,12 +215,19 @@
                 </div>
             </main>
 
-            <!-- TAB 2: BUTLER (任務管家 - 換土提醒) -->
+            <!-- TAB 2: BUTLER (任務管家 - 換土提醒 - 完整資訊版) -->
             <main id="tab-butler" class="app-view hidden">
                 <div class="space-y-6">
                     <div class="flex justify-between items-end">
-                        <h3 class="text-bona-gold text-[10px] font-black uppercase tracking-[0.2em]">換土提醒 (Soil Change)</h3>
-                        <span class="text-[9px] text-gray-500">週期設定：60 天</span>
+                        <div class="flex flex-col">
+                            <h3 class="text-bona-gold text-[10px] font-black uppercase tracking-[0.2em]">換土工作單 (Worklist)</h3>
+                            <span class="text-[9px] text-gray-500">週期設定：60 天</span>
+                        </div>
+                        <!-- EXPORT BUTTON -->
+                        <button onclick="window.exportCensusCSV()" class="flex items-center gap-1 bg-white/10 border border-white/20 px-3 py-1 rounded-lg hover:bg-white/20">
+                            <i class="fa-solid fa-file-csv text-bona-gold text-xs"></i>
+                            <span class="text-[9px] text-white font-bold">匯出報表</span>
+                        </button>
                     </div>
 
                     <!-- 逾期清單 (Overdue) -->
@@ -241,9 +249,10 @@
                     </div>
 
                     <!-- 空狀態 (Empty State) -->
-                    <div id="reminder-empty" class="hidden text-center py-12 opacity-50">
+                    <div id="reminder-empty" class="hidden flex flex-col items-center justify-center py-12 opacity-50">
                         <i class="fa-solid fa-check-circle text-4xl text-green-500 mb-4"></i>
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">目前沒有急迫的換土任務</p>
+                        <p class="text-[9px] text-gray-600 mt-2">若清單空白，請確認是否已錄入數據或網路是否連通</p>
                     </div>
                     
                     <div class="text-center mt-8">
@@ -335,7 +344,6 @@
             <div id="reader" class="w-full h-full bg-black relative"><p class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-500 text-sm">相機啟動中...</p></div>
         </div>
 
-        <!-- UPDATE MODAL -->
         <div id="modal-update" class="hidden fixed inset-0 z-[250] bg-black/90 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-bona-card w-full max-w-sm rounded-xl p-6 border border-gray-700 shadow-2xl relative max-h-[90vh] overflow-y-auto">
                 <button onclick="window.closeUpdateModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white p-2 z-50"><i class="fa-solid fa-times text-xl"></i></button>
@@ -392,7 +400,6 @@
     </div>
 
     <script>
-        // Updated Webhook
         const WEBHOOK_URL = "https://hook.us2.make.com/dft05gnm8d1nnhq1uw9owyy5rbon904w"; 
         
         let currentUser = localStorage.getItem('bona_user_key') || null;
@@ -404,7 +411,6 @@
         let historyDataCache = []; 
         let knownBeetlesCache = JSON.parse(localStorage.getItem('bona_beetles_cache') || '[]');
 
-        // Datalist
         const SPECIES_LIST = [
             { code: "D", name: "D.h.h (長戟大兜)" },
             { code: "DHH", name: "D.h.h (長戟大兜)" },
@@ -433,52 +439,48 @@
             { code: "PAM", name: "P.alces (水沼氏兩點赤)" }
         ];
 
+        // --- SAFE DOM HELPERS ---
+        function safeAddClass(id, className) {
+            const el = document.getElementById(id);
+            if(el) el.classList.add(className);
+        }
+        function safeRemoveClass(id, className) {
+            const el = document.getElementById(id);
+            if(el) el.classList.remove(className);
+        }
+
         window.switchTab = function(tabName) {
-            ['tab-home', 'tab-butler', 'tab-lab'].forEach(id => document.getElementById(id).classList.add('hidden'));
-            ['nav-home', 'nav-butler', 'nav-lab'].forEach(id => document.getElementById(id).classList.remove('active'));
+            ['tab-home', 'tab-butler', 'tab-lab'].forEach(id => safeAddClass(id, 'hidden'));
+            ['nav-home', 'nav-butler', 'nav-lab'].forEach(id => safeRemoveClass(id, 'active'));
             
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-            document.getElementById(`nav-${tabName}`).classList.add('active');
+            safeRemoveClass(`tab-${tabName}`, 'hidden');
+            safeAddClass(`nav-${tabName}`, 'active');
 
             if(tabName === 'butler') {
                 window.refreshTaskButler();
             }
         }
 
-        // FIXED switchView FUNCTION
         window.switchView = function(viewName) {
-            // Safely hide all possible view containers
-            ['view-login', 'main-app', 'view-dashboard', 'view-scanner'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('hidden');
-            });
+            ['view-login', 'main-app', 'view-scanner'].forEach(id => safeAddClass(id, 'hidden'));
             
-            if(viewName !== 'detail') {
-                const detailView = document.getElementById('view-detail');
-                if (detailView) detailView.classList.add('hidden');
-            }
+            if(viewName !== 'detail') safeAddClass('view-detail', 'hidden');
 
-            // Determine which view to show
             const targetId = viewName === 'dashboard' ? 'main-app' : `view-${viewName}`;
-            const target = document.getElementById(targetId);
+            safeRemoveClass(targetId, 'hidden');
             
-            if(target) target.classList.remove('hidden'); 
-            
-            // Special handling for dashboard/main-app initialization
             if (viewName === 'dashboard') { 
-                const mainApp = document.getElementById('main-app');
-                if(mainApp) mainApp.classList.add('flex'); 
-                
+                safeAddClass('main-app', 'flex'); 
                 const searchInput = document.getElementById('search-id');
                 if(searchInput) searchInput.value = ''; 
-                
-                // Default to home tab
-                if(typeof window.switchTab === 'function') window.switchTab('home'); 
+                if(typeof window.switchTab === 'function') {
+                    setTimeout(() => window.switchTab('home'), 10);
+                } 
             } 
         }
 
         window.showDashboard = function() { window.switchView('dashboard'); }
-        window.closeDetail = function() { window.switchView('dashboard'); document.getElementById('view-detail').classList.add('hidden'); }
+        window.closeDetail = function() { window.switchView('dashboard'); safeAddClass('view-detail', 'hidden'); }
 
         window.cleanData = function(val) {
             if (val === null || val === undefined) return '--';
@@ -504,11 +506,47 @@
         window.getSafePayloadValue = function(val) { const cleaned = window.cleanData(val); return (cleaned === '--' || cleaned === '') ? null : cleaned; }
         window.getDomVal = function(id) { const el = document.getElementById(id); return el ? el.value : ''; }
         
-        window.showLoading = function(show) { document.getElementById('loading-overlay').classList[show ? 'remove' : 'add']('hidden'); if(show) document.getElementById('loading-overlay').classList.add('flex'); }
+        window.showLoading = function(show) { 
+            const loader = document.getElementById('loading-overlay');
+            if(loader) {
+                if(show) {
+                    loader.classList.remove('hidden');
+                    loader.classList.add('flex');
+                } else {
+                    loader.classList.add('hidden');
+                }
+            }
+        }
+        
         window.showNotification = function(msg, type) { const area = document.getElementById('notification-area'); const el = document.createElement('div'); el.className = `${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white px-4 py-3 rounded shadow-lg text-sm font-bold flex items-center justify-center transform transition-all duration-300 translate-y-[-20px] opacity-0`; el.innerText = msg; area.appendChild(el); requestAnimationFrame(() => el.classList.remove('translate-y-[-20px]', 'opacity-0')); setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000); }
         window.updateIDPreview = function() { const prefix = document.getElementById('id-prefix').value || 'D'; const year = document.getElementById('id-year').value; let batch = document.getElementById('id-batch').value || '00'; let seq = document.getElementById('id-seq').value || '000'; if (batch.length < 2) batch = '0' + batch; if (seq.length < 3) seq = ('000' + seq).slice(-3); const fullId = `${prefix}-${year}-${batch}-${seq}`; document.getElementById('id-preview').innerText = fullId; return fullId; }
-        window.updateDashboardUI = function() { if(!currentUser) return; const percent = Math.min((quotaInfo.used / quotaInfo.max) * 100, 100); document.getElementById('quota-bar-fill').style.width = `${percent}%`; const bar = document.getElementById('quota-bar-fill'); if (percent >= 90) bar.className = 'quota-bar h-full bg-bona-danger'; else bar.className = 'quota-bar h-full bg-bona-gold'; }
+        window.updateDashboardUI = function() { 
+            if(!currentUser) return; 
+            const percent = Math.min((quotaInfo.used / quotaInfo.max) * 100, 100); 
+            
+            const barFill = document.getElementById('quota-bar-fill');
+            if(barFill) {
+                barFill.style.width = `${percent}%`; 
+                if (percent >= 90) barFill.className = 'quota-bar h-full bg-bona-danger'; 
+                else barFill.className = 'quota-bar h-full bg-bona-gold'; 
+            }
+
+            const textEl = document.getElementById('quota-text');
+            if(textEl) {
+                textEl.innerText = `${quotaInfo.used} / ${quotaInfo.max}`;
+            }
+        }
         
+        // FIXED: handleLogin - Logs error to console if element missing
+        window.handleLogin = function() { 
+            const inputEl = document.getElementById('login-license');
+            if(!inputEl) { console.error("Login input missing"); return; }
+            const key = inputEl.value.trim(); 
+            if (!key) return window.showNotification('請輸入授權碼', 'error'); 
+            window.verifyLicense(key, false); 
+        }
+
+        // FIXED: verifyLicense - Lenient Auth & Error Handling
         window.verifyLicense = async function(key, silent) { 
             if (!silent) window.showLoading(true); 
             try { 
@@ -516,14 +554,23 @@
                 const text = await response.text(); 
                 let data; 
                 try { data = JSON.parse(text); } 
-                catch (e) { if (text.includes('Accepted') || response.ok) data = { status: 'Active', key_found: key, max: 50, used: 0 }; else throw new Error(`Auth Error`); } 
+                catch (e) { 
+                    // Fallback for non-JSON response from Make
+                    if (text.includes('Accepted') || response.ok) data = { status: 'Active', key_found: key, max: 50, used: 0 }; 
+                    else throw new Error(`Auth Error: ${text}`); 
+                } 
                 if (data.json) { try { data = JSON.parse(data.json); } catch(e){} } 
                 if (Array.isArray(data)) data = data[0]; 
                 
-                const rawKey = data.key_found || data['License Key'] || data.id; 
-                const keyMatch = window.cleanData(rawKey) === key; 
+                // LENIENT CHECK: Trust Status 'Active' OR Key Match
+                const status = window.cleanData(data.status || data.Status);
+                const isActive = status.toLowerCase().includes('active');
                 
-                if (keyMatch) { 
+                // Fallback Key Check
+                const rawKey = data.key_found || data['License Key'] || data.id; 
+                const keyMatch = String(window.cleanData(rawKey)).trim() === String(key).trim(); 
+                
+                if (isActive || keyMatch) { 
                     currentUser = key; currentRealId = data.real_id || key; 
                     localStorage.setItem('bona_user_key', key); 
                     localStorage.setItem('bona_user_id', currentRealId); 
@@ -531,90 +578,175 @@
                     window.updateDashboardUI(); 
                     if (!silent) { window.switchView('dashboard'); } 
                 } else { 
-                    if (!silent) window.showNotification(`授權失敗`, 'error'); else window.logout(); 
+                    if (!silent) window.showNotification(`授權失敗: ${status}`, 'error'); else window.logout(); 
                 } 
-            } catch(e) { if(!silent) window.showNotification(`連線錯誤`, 'error'); } 
+            } catch(e) { 
+                if(!silent) window.showNotification(`連線錯誤: ${e.message}`, 'error'); 
+                console.error("Login Error:", e);
+            } 
             finally { if(!silent) window.showLoading(false); } 
         }
 
-        // --- CACHE & REMINDER LOGIC ---
-        function updateLocalBeetleCache(id, date) {
-            let cache = knownBeetlesCache;
-            const idx = cache.findIndex(b => b.id === id);
-            if (idx >= 0) { cache[idx].date = date; } 
-            else { cache.push({ id: id, date: date }); }
-            localStorage.setItem('bona_beetles_cache', JSON.stringify(cache));
-            knownBeetlesCache = cache;
+        // === EXPORT CSV FUNCTION ===
+        window.exportCensusCSV = function() {
+            // Get currently displayed items from DOM or cache? 
+            // Better to use a dedicated variable if available, or re-parse from cache.
+            // Since refreshTaskButler fetches fresh data, we can store it in a temporary variable there.
+            // OR simpler: Export knownBeetlesCache (for local) or fetch again.
+            
+            // Let's use knownBeetlesCache since we just want a dump of known items + details.
+            // BUT refreshTaskButler (Cloud) returns richer data than cache.
+            // So we need to store the cloud result.
+            if(!window.lastCensusData || window.lastCensusData.length === 0) {
+                 window.showNotification('請先整理清單以取得最新數據', 'error');
+                 return;
+            }
+
+            const headers = ["ID", "Last Check", "Next Change", "Weight", "Container", "Substrate", "Additive"];
+            const csvRows = [headers.join(",")];
+
+            window.lastCensusData.forEach(item => {
+                const id = window.cleanData(item.id || item.title);
+                const lastCheck = window.cleanData(item.date || item.date_check);
+                // Calc Next
+                let nextDate = '';
+                if(lastCheck !== '--') {
+                    const d = new Date(lastCheck);
+                    d.setDate(d.getDate() + 60);
+                    nextDate = d.toISOString().split('T')[0];
+                }
+                
+                const row = [
+                    id,
+                    lastCheck,
+                    nextDate,
+                    window.cleanData(item.weight),
+                    `${window.cleanData(item.box_type)} ${window.cleanData(item.box_vol)}`,
+                    `${window.cleanData(item.sub_main)} + ${window.cleanData(item.sub_sec)}`,
+                    window.cleanData(item.booster)
+                ];
+                csvRows.push(row.join(","));
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Bona_Census_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
-        window.refreshTaskButler = function() {
+        window.refreshTaskButler = async function() {
+            if (!currentUser) return window.showNotification('請先登入以同步雲端資料', 'error');
+
             const listOverdue = document.getElementById('reminder-list-overdue');
             const listUpcoming = document.getElementById('reminder-list-upcoming');
-            const containerOverdue = document.getElementById('reminder-overdue-container');
-            const containerUpcoming = document.getElementById('reminder-upcoming-container');
-            const emptyState = document.getElementById('reminder-empty');
             
             listOverdue.innerHTML = '';
             listUpcoming.innerHTML = '';
-            
-            let hasItems = false;
-            const today = new Date();
-            // Default 60 days cycle
-            const CYCLE_DAYS = 60; 
+            safeAddClass('reminder-overdue-container', 'hidden');
+            safeAddClass('reminder-upcoming-container', 'hidden');
+            safeAddClass('reminder-empty', 'hidden');
 
-            // Sort cache by urgency (oldest check date first)
-            const sortedBeetles = [...knownBeetlesCache].sort((a, b) => new Date(a.date) - new Date(b.date));
+            window.showLoading(true);
 
-            sortedBeetles.forEach(beetle => {
-                const lastDate = new Date(beetle.date);
-                if (isNaN(lastDate)) return;
-
-                const nextDate = new Date(lastDate);
-                nextDate.setDate(nextDate.getDate() + CYCLE_DAYS);
+            try {
+                // CLOUD FETCH (Using 'census' type)
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'census', userId: currentRealId || currentUser })
+                });
                 
-                const diffTime = nextDate - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                const text = await response.text();
+                let data;
+                try { data = JSON.parse(text); } catch(e) { data = { items: [] }; }
+                
+                let items = [];
+                if (data.items) items = data.items;
+                else if (data.data) items = data.data;
+                else if (Array.isArray(data)) items = data;
+                
+                // Store for Export
+                window.lastCensusData = items;
 
-                // Logic: Show if Overdue OR within next 14 days
-                if (diffDays < 0) {
-                    // Overdue
-                    hasItems = true;
-                    containerOverdue.classList.remove('hidden');
-                    const item = document.createElement('div');
-                    item.className = 'glass-panel p-3 rounded-lg flex justify-between items-center reminder-card border-danger bg-red-900/10';
-                    item.innerHTML = `
-                        <div>
-                            <div class="text-white font-bold font-mono">${beetle.id}</div>
-                            <div class="text-[10px] text-red-400">已逾期 ${Math.abs(diffDays)} 天</div>
-                        </div>
-                        <button onclick="window.fetchBeetleData('${beetle.id}')" class="bg-red-600 text-white text-[10px] px-3 py-1 rounded font-bold">查看</button>
-                    `;
-                    listOverdue.appendChild(item);
-                } else if (diffDays <= 14) {
-                    // Upcoming
-                    hasItems = true;
-                    containerUpcoming.classList.remove('hidden');
-                    const item = document.createElement('div');
-                    item.className = 'glass-panel p-3 rounded-lg flex justify-between items-center reminder-card border-warning';
-                    item.innerHTML = `
-                        <div>
-                            <div class="text-white font-bold font-mono">${beetle.id}</div>
-                            <div class="text-[10px] text-bona-gold">剩餘 ${diffDays} 天</div>
-                        </div>
-                        <button onclick="window.fetchBeetleData('${beetle.id}')" class="border border-bona-gold text-bona-gold text-[10px] px-3 py-1 rounded font-bold">查看</button>
-                    `;
-                    listUpcoming.appendChild(item);
+                let hasItems = false;
+                const today = new Date();
+                const CYCLE_DAYS = 60; 
+
+                if(Array.isArray(items)) {
+                    items.sort((a, b) => new Date(a.date || a.date_check) - new Date(b.date || b.date_check));
+
+                    items.forEach(beetle => {
+                        const checkDateStr = window.cleanData(beetle.date || beetle.date_check);
+                        const lastDate = new Date(checkDateStr);
+                        const beetleId = window.cleanData(beetle.id || beetle.title);
+                        
+                        // Extract Details for Card
+                        const weight = window.cleanData(beetle.weight || '--');
+                        const box = `${window.cleanData(beetle.box_type || '--')} ${window.cleanData(beetle.box_vol || '')}`;
+                        const sub = `${window.cleanData(beetle.sub_main || '--')} + ${window.cleanData(beetle.sub_sec || '--')}`;
+                        const booster = window.cleanData(beetle.booster || '--');
+
+                        if (isNaN(lastDate) || !beetleId || beetleId === '--') return;
+
+                        const nextDate = new Date(lastDate);
+                        nextDate.setDate(nextDate.getDate() + CYCLE_DAYS);
+                        const nextDateStr = nextDate.toISOString().split('T')[0];
+                        
+                        const diffTime = nextDate - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+                        // Card Template
+                        const cardHtml = `
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="text-white font-bold font-mono text-lg">${beetleId}</div>
+                                <div class="text-[10px] font-bold px-2 py-1 rounded bg-black/50 border border-white/10 text-gray-300">
+                                    ${diffDays < 0 ? `逾期 ${Math.abs(diffDays)} 天` : `剩 ${diffDays} 天`}
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-[10px] text-gray-400 mb-2">
+                                <div><span class="text-gray-600">重量:</span> <span class="text-white">${weight}g</span></div>
+                                <div><span class="text-gray-600">容器:</span> <span class="text-white">${box}</span></div>
+                                <div class="col-span-2"><span class="text-gray-600">食材:</span> <span class="text-white">${sub}</span></div>
+                                <div class="col-span-2"><span class="text-gray-600">添加:</span> <span class="text-bona-gold">${booster}</span></div>
+                            </div>
+                            <div class="flex justify-between items-center border-t border-white/10 pt-2">
+                                <div class="text-[9px] text-gray-500">預計: ${nextDateStr}</div>
+                                <button onclick="window.fetchBeetleData('${beetleId}')" class="text-bona-gold text-[10px] font-bold border border-bona-gold px-3 py-1 rounded hover:bg-bona-gold hover:text-black transition-colors">更新數據</button>
+                            </div>
+                        `;
+
+                        if (diffDays < 0) {
+                            hasItems = true;
+                            safeRemoveClass('reminder-overdue-container', 'hidden');
+                            const item = document.createElement('div');
+                            item.className = 'glass-panel p-4 rounded-xl reminder-card border-danger bg-red-900/10 mb-3';
+                            item.innerHTML = cardHtml;
+                            listOverdue.appendChild(item);
+                        } else if (diffDays <= 14) {
+                            hasItems = true;
+                            safeRemoveClass('reminder-upcoming-container', 'hidden');
+                            const item = document.createElement('div');
+                            item.className = 'glass-panel p-4 rounded-xl reminder-card border-warning mb-3';
+                            item.innerHTML = cardHtml;
+                            listUpcoming.appendChild(item);
+                        }
+                    });
                 }
-            });
 
-            if (!hasItems) {
-                containerOverdue.classList.add('hidden');
-                containerUpcoming.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                if (listOverdue.children.length === 0) containerOverdue.classList.add('hidden');
-                if (listUpcoming.children.length === 0) containerUpcoming.classList.add('hidden');
+                if (!hasItems) {
+                    safeRemoveClass('reminder-empty', 'hidden');
+                }
+
+            } catch(e) {
+                console.error(e);
+                window.showNotification('同步失敗，請稍後再試', 'error');
+                safeRemoveClass('reminder-empty', 'hidden');
+            } finally {
+                window.showLoading(false);
             }
         }
 
@@ -627,7 +759,7 @@
                 const text = await response.text(); 
                 let data; 
                 try { data = JSON.parse(text); } catch (e) { throw new Error(`Format Error`); } 
-                if (data.json) { try { data = JSON.parse(data.json); } catch(e) {} } 
+                if (data.json) { try { data = typeof data.json === 'string' ? JSON.parse(data.json) : data.json; } catch(e) {} } 
                 
                 const normalize = (obj) => { if (!obj || typeof obj !== 'object') return obj; const newObj = {}; Object.keys(obj).forEach(key => newObj[key.toLowerCase()] = obj[key]); return newObj; }; 
                 let record = data; let history = []; 
@@ -643,7 +775,7 @@
 
                     historyDataCache = history; currentDetailData = consolidatedRecord; 
                     window.populateDetailView(consolidatedRecord); window.renderHistoryList(history); window.calculateGrowth(consolidatedRecord, history); 
-                    window.switchView('detail'); document.getElementById('view-detail').classList.remove('hidden'); document.getElementById('search-id').value = ''; 
+                    window.switchView('detail'); safeRemoveClass('view-detail', 'hidden'); document.getElementById('search-id').value = ''; 
                 } else { window.showNotification(`找不到資料`, 'error'); } 
             } catch (error) { window.showNotification(`系統錯誤`, 'error'); } finally { window.showLoading(false); } 
         }
@@ -670,7 +802,7 @@
                 const payload = { type: 'growth', mode: 'new', ...newRecord };
                 const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 const text = await response.text(); let data; try { data = JSON.parse(text); } catch(e) { if(text.includes('Accepted') || response.ok) { data = { status: 'success' }; } else { throw new Error(`伺服器回應錯誤`); } }
-                if (response.ok) { window.showNotification(`錄入成功: ${fullId}`, 'success'); quotaInfo.used += 1; window.updateDashboardUI(); const nextSeq = parseInt(document.getElementById('id-seq').value) + 1; document.getElementById('id-seq').value = nextSeq.toString().padStart(3, '0'); window.updateIDPreview(); historyDataCache = [newRecord]; currentDetailData = newRecord; window.populateDetailView(newRecord); window.renderHistoryList([newRecord]); window.calculateGrowth(newRecord, []); window.switchView('detail'); document.getElementById('view-detail').classList.remove('hidden'); setTimeout(() => window.openQRModal(fullId), 500); } else throw new Error(`HTTP ${response.status}`);
+                if (response.ok) { window.showNotification(`錄入成功: ${fullId}`, 'success'); quotaInfo.used += 1; window.updateDashboardUI(); const nextSeq = parseInt(document.getElementById('id-seq').value) + 1; document.getElementById('id-seq').value = nextSeq.toString().padStart(3, '0'); window.updateIDPreview(); historyDataCache = [newRecord]; currentDetailData = newRecord; window.populateDetailView(newRecord); window.renderHistoryList([newRecord]); window.calculateGrowth(newRecord, []); window.switchView('detail'); safeRemoveClass('view-detail', 'hidden'); setTimeout(() => window.openQRModal(fullId), 500); } else throw new Error(`HTTP ${response.status}`);
             } catch (error) { window.showNotification(`錄入錯誤: ${error.message}`, 'error'); } finally { window.showLoading(false); }
         }
 
@@ -693,21 +825,41 @@
 
         window.logout = function() { localStorage.removeItem('bona_user_key'); localStorage.removeItem('bona_user_id'); currentUser = null; location.reload(); }
         window.handleManualSearch = async function() { if (!currentUser) return window.showNotification('請先登入', 'error'); let id = document.getElementById('search-id').value.trim().toUpperCase(); const cleanInput = id.replace(/[^A-Z0-9]/g, ''); if (cleanInput.length === 7 && /^\d+$/.test(cleanInput)) { id = `D-${cleanInput.substring(0, 2)}-${cleanInput.substring(2, 4)}-${cleanInput.substring(4)}`; window.showNotification(`自動修正 ID 為: ${id}`, 'success'); } else if (cleanInput.length >= 8) { const suffix = cleanInput.slice(-7); const prefix = cleanInput.slice(0, -7); id = `${prefix}-${suffix.substring(0, 2)}-${suffix.substring(2, 4)}-${suffix.substring(4)}`; } if (!id) return window.showNotification('請輸入編號', 'error'); await window.fetchBeetleData(id); }
-        window.showNewEntryForm = function() { if (quotaInfo.used >= quotaInfo.max) { document.getElementById('modal-upgrade').classList.remove('hidden'); return; } document.getElementById('form-new-entry').reset(); const today = new Date().toISOString().split('T')[0]; document.getElementById('new-check-date').value = today; document.getElementById('new-hatch-date').value = today; const lastSire = localStorage.getItem('last_sire'); const lastDam = localStorage.getItem('last_dam'); if(lastSire) document.getElementById('new-sire').value = lastSire; if(lastDam) document.getElementById('new-dam').value = lastDam; window.updateIDPreview(); const lastSeq = localStorage.getItem('last_seq'); if (lastSeq) { const nextSeq = parseInt(lastSeq) + 1; document.getElementById('id-seq').value = nextSeq.toString().padStart(3, '0'); window.updateIDPreview(); } document.getElementById('modal-new-entry').classList.remove('hidden'); }
-        window.openUpdateModal = function() { const today = new Date().toISOString().split('T')[0]; document.getElementById('update-date').value = today; document.getElementById('modal-update').classList.remove('hidden'); }
-        window.closeUpdateModal = function() { document.getElementById('modal-update').classList.add('hidden'); }
-        window.closeNewEntryModal = function() { document.getElementById('modal-new-entry').classList.add('hidden'); }
+        
+        // SAFE MODAL CLOSE FUNCTIONS
+        window.closeUpdateModal = function() { safeAddClass('modal-update', 'hidden'); }
+        window.closeNewEntryModal = function() { safeAddClass('modal-new-entry', 'hidden'); }
+        window.closeQRModal = function() { safeAddClass('modal-qr', 'hidden'); }
+
+        window.showNewEntryForm = function() { 
+            if (quotaInfo.used >= quotaInfo.max) { 
+                safeRemoveClass('modal-upgrade', 'hidden'); 
+                return; 
+            } 
+            document.getElementById('form-new-entry').reset(); 
+            const today = new Date().toISOString().split('T')[0]; 
+            document.getElementById('new-check-date').value = today; 
+            document.getElementById('new-hatch-date').value = today; 
+            const lastSire = localStorage.getItem('last_sire'); const lastDam = localStorage.getItem('last_dam'); if(lastSire) document.getElementById('new-sire').value = lastSire; if(lastDam) document.getElementById('new-dam').value = lastDam; window.updateIDPreview(); const lastSeq = localStorage.getItem('last_seq'); if (lastSeq) { const nextSeq = parseInt(lastSeq) + 1; document.getElementById('id-seq').value = nextSeq.toString().padStart(3, '0'); window.updateIDPreview(); } 
+            safeRemoveClass('modal-new-entry', 'hidden');
+        }
+        window.openUpdateModal = function() { const today = new Date().toISOString().split('T')[0]; document.getElementById('update-date').value = today; safeRemoveClass('modal-update', 'hidden'); }
         window.showQRCodeForCurrent = function() { currentDetailData && currentDetailData.id ? window.openQRModal(window.cleanData(currentDetailData.id)) : window.showNotification('無資料', 'error'); }
-        window.openQRModal = function(id) { const modal = document.getElementById('modal-qr'); const container = document.getElementById('qrcode'); container.innerHTML = ''; document.getElementById('qr-id-label').innerText = id; new QRCode(container, { text: id, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H }); modal.classList.remove('hidden'); }
-        window.closeQRModal = function() { document.getElementById('modal-qr').classList.add('hidden'); }
-        window.openScanner = function(mode = 'search', targetId = null) { scanTargetId = targetId; window.switchView('scanner'); setTimeout(() => { if (!html5QrcodeScanner && typeof Html5Qrcode !== 'undefined') html5QrcodeScanner = new Html5Qrcode("reader"); if(html5QrcodeScanner) { html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => { html5QrcodeScanner.stop().then(() => { let cleanId = decodedText.trim().toUpperCase(); if (cleanId.includes('/') || cleanId.includes('HTTP')) { const parts = cleanId.split('/'); cleanId = parts[parts.length - 1]; } if (mode === 'fill' && scanTargetId) { document.getElementById(scanTargetId).value = cleanId; window.showNotification(`已填入: ${cleanId}`, 'success'); document.getElementById('view-scanner').classList.add('hidden'); document.getElementById('modal-new-entry').classList.remove('hidden'); } else { window.closeScanner(); window.showNotification(`已讀取: ${cleanId}`, 'info'); window.fetchBeetleData(cleanId); } }); }, (error) => {}).catch(err => { window.showNotification('無法開啟相機(需HTTPS)', 'error'); window.closeScanner(); }); } else { window.showNotification('掃描器初始化失敗', 'error'); window.closeScanner(); } }, 100); }
+        window.openQRModal = function(id) { const modal = document.getElementById('modal-qr'); const container = document.getElementById('qrcode'); container.innerHTML = ''; document.getElementById('qr-id-label').innerText = id; new QRCode(container, { text: id, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H }); safeRemoveClass('modal-qr', 'hidden'); }
+        window.openScanner = function(mode = 'search', targetId = null) { scanTargetId = targetId; window.switchView('scanner'); setTimeout(() => { if (!html5QrcodeScanner && typeof Html5Qrcode !== 'undefined') html5QrcodeScanner = new Html5Qrcode("reader"); if(html5QrcodeScanner) { html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => { html5QrcodeScanner.stop().then(() => { let cleanId = decodedText.trim().toUpperCase(); if (cleanId.includes('/') || cleanId.includes('HTTP')) { const parts = cleanId.split('/'); cleanId = parts[parts.length - 1]; } if (mode === 'fill' && scanTargetId) { document.getElementById(scanTargetId).value = cleanId; window.showNotification(`已填入: ${cleanId}`, 'success'); safeAddClass('view-scanner', 'hidden'); safeRemoveClass('modal-new-entry', 'hidden'); } else { window.closeScanner(); window.showNotification(`已讀取: ${cleanId}`, 'info'); window.fetchBeetleData(cleanId); } }); }, (error) => {}).catch(err => { window.showNotification('無法開啟相機(需HTTPS)', 'error'); window.closeScanner(); }); } else { window.showNotification('掃描器初始化失敗', 'error'); window.closeScanner(); } }, 100); }
         window.closeScanner = function() { if (html5QrcodeScanner?.isScanning) { html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); window.switchView('dashboard'); }).catch(() => window.switchView('dashboard')); } else window.switchView('dashboard'); }
         window.createLineageLink = function(text) { const val = window.cleanData(text); if (!val || val === '--' || val === '') return '--'; if (val.length > 2 && /[A-Z0-9]/.test(val)) { return `<span class="lineage-link" onclick="window.handleLineageClick('${val}')">${val}</span>`; } return val; }
         window.handleLineageClick = async function(id) { window.showNotification(`正在跳轉至親代: ${id}`, 'info'); await window.fetchBeetleData(id); }
 
         document.addEventListener('DOMContentLoaded', () => {
             const lastPrefix = localStorage.getItem('last_prefix'); if (lastPrefix && document.getElementById('id-prefix')) document.getElementById('id-prefix').value = lastPrefix;
-            const today = new Date().toISOString().split('T')[0]; if(document.getElementById('new-check-date')) document.getElementById('new-check-date').value = today; if(document.getElementById('new-hatch-date')) document.getElementById('new-hatch-date').value = today; if(document.getElementById('update-date')) document.getElementById('update-date').value = today;
+            const today = new Date().toISOString().split('T')[0]; 
+            const checkEl = document.getElementById('new-check-date');
+            const hatchEl = document.getElementById('new-hatch-date');
+            const updEl = document.getElementById('update-date');
+            if(checkEl) checkEl.value = today;
+            if(hatchEl) hatchEl.value = today;
+            if(updEl) updEl.value = today;
             
             const datalist = document.getElementById('species-options');
             if (datalist) {
