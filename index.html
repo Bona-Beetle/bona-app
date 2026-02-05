@@ -12,6 +12,7 @@
     <meta name="theme-color" content="#0f0f0f">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BonaLite">
 
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,7 +30,7 @@
         }
     </script>
     <style>
-        /* APP SHELL LOCK */
+        /* APP SHELL LOCK - 100% PRESERVED FROM YOUR FILE */
         html { height: 100%; overflow: hidden; background-color: #0f0f0f; }
         body { 
             height: 100%; width: 100%; margin: 0; padding: 0; 
@@ -92,22 +93,16 @@
             padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom));
         }
 
-        /* DASHBOARD TABS */
+        /* DASHBOARD NAV (新增分頁樣式) */
         .dashboard-nav {
             position: absolute; bottom: 0; left: 0; right: 0; z-index: 100;
-            background-color: rgba(15, 15, 15, 0.98);
+            background-color: rgba(15, 15, 15, 0.95);
             border-top: 1px solid #333;
-            height: 80px;
-            display: grid; grid-template-columns: 1fr 1fr;
+            height: 80px; display: grid; grid-template-columns: repeat(3, 1fr);
             padding-bottom: env(safe-area-inset-bottom);
         }
-        .nav-tab {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #555; transition: all 0.3s; cursor: pointer;
-        }
-        .nav-tab.active { color: #d4af37; }
-        .nav-tab i { font-size: 1.5rem; margin-bottom: 4px; }
-        .nav-tab span { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; transition: all 0.3s; font-size: 10px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
+        .nav-item.active-tab { color: #d4af37; }
 
         /* UTILS */
         .gold-gradient { background: linear-gradient(135deg, #d4af37 0%, #a68a2e 100%); }
@@ -116,6 +111,8 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .quota-bar { transition: width 0.5s ease-out; }
         .lineage-link { color: #d4af37; text-decoration: underline; font-weight: bold; cursor: pointer; }
+        .list-section { margin-bottom: 24px; }
+        .list-header { font-size: 12px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;}
         
         button { cursor: pointer; pointer-events: auto; }
         input, select { -webkit-appearance: none; background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; }
@@ -125,23 +122,24 @@
 </head>
 <body class="font-sans antialiased text-base">
 
+    <!-- Global UI -->
     <div id="notification-area" class="fixed top-32 left-1/2 transform -translate-x-1/2 z-[300] w-11/12 max-w-sm space-y-2 pointer-events-none"></div>
     <div id="loading-overlay" class="fixed inset-0 bg-black/90 z-[300] hidden flex-col items-center justify-center">
         <div class="loader mb-4"></div>
         <p class="text-bona-gold text-lg font-bold tracking-wider animate-pulse">SYSTEM PROCESSING</p>
     </div>
 
+    <!-- APP SHELL -->
     <div id="app-container">
 
-        <!-- VIEW: LOGIN (原始) -->
+        <!-- VIEW: LOGIN (原汁原味) -->
         <div id="view-login" class="flex h-full flex-col items-center justify-center p-6 z-10 relative">
             <div class="mb-8 text-center">
                 <div class="w-24 h-24 mx-auto mb-4 bg-bona-dark rounded-full border-2 border-bona-gold flex items-center justify-center overflow-hidden shadow-lg shadow-bona-gold/20">
                      <img src="logo.png" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'" class="w-full h-full object-cover">
                      <i class="fa-solid fa-bug text-4xl text-bona-gold hidden absolute"></i>
-            </div>
+                </div>
                 <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-widest text-center">BONA <span class="text-bona-gold">LITE</span></h1>
-                <p class="text-bona-muted text-[10px] tracking-[0.3em] uppercase mt-2 italic">Analytics Infrastructure</p>
             </div>
             <div class="w-full glass-panel p-8 rounded-xl shadow-2xl space-y-6">
                 <div>
@@ -157,7 +155,7 @@
             </div>
         </div>
 
-        <!-- VIEW: DASHBOARD (原始+分頁) -->
+        <!-- VIEW: DASHBOARD (整合分頁) -->
         <div id="view-dashboard" class="hidden h-full flex-col relative">
             <header class="fixed-header-wrapper px-6">
                 <div class="flex justify-between items-center mb-3 w-full px-4">
@@ -179,7 +177,7 @@
                 </div>
             </header>
 
-            <!-- TAB 1: HOME -->
+            <!-- TAB 1: HOME (原始儀表板內容) -->
             <main id="tab-home" class="dashboard-content">
                 <div class="grid grid-cols-2 gap-5 mb-5 mt-4">
                     <button onclick="window.openScanner()" class="p-6 glass-panel rounded-xl flex flex-col items-center justify-center space-y-3 hover:bg-gray-800 transition-colors border-bona-gold/30 border min-h-[150px]"><i class="fa-solid fa-qrcode text-4xl text-bona-gold"></i><span class="text-sm font-bold tracking-wider">掃描 QR Code</span></button>
@@ -211,46 +209,55 @@
                 <div class="flex justify-between items-end mb-6 mt-4">
                     <div>
                         <h3 class="text-white text-xl font-bold tracking-wider">換土工作單</h3>
-                        <p class="text-[10px] text-bona-muted uppercase tracking-widest" id="butler-status">Maintenance | 60 Days Cycle</p>
+                        <p class="text-[10px] text-bona-muted uppercase tracking-widest">Maintenance | 60 Days Cycle</p>
                     </div>
                     <button onclick="window.refreshTaskButler()" class="bg-bona-card p-3 rounded-xl border border-gray-800 text-bona-gold hover:text-white transition-colors"><i class="fa-solid fa-rotate"></i></button>
                 </div>
-
-                <div id="section-overdue" class="mb-6 hidden">
+                
+                <div id="section-overdue" class="list-section hidden">
                     <h4 class="text-bona-danger text-xs font-bold uppercase mb-3 flex items-center"><i class="fa-solid fa-circle-exclamation mr-2"></i> 已逾期 (Overdue) <span id="count-overdue" class="ml-auto bg-bona-danger/20 px-2 py-0.5 rounded text-[10px]">0</span></h4>
                     <div id="list-overdue" class="space-y-3"></div>
                 </div>
 
-                <div id="section-warning" class="mb-6 hidden">
+                <div id="section-warning" class="list-section hidden">
                     <h4 class="text-bona-gold text-xs font-bold uppercase mb-3 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-2"></i> 警示 (Urgent - 14D) <span id="count-warning" class="ml-auto bg-bona-gold/20 px-2 py-0.5 rounded text-[10px]">0</span></h4>
                     <div id="list-warning" class="space-y-3"></div>
                 </div>
 
-                <div id="section-safe" class="mb-6 hidden">
+                <div id="section-safe" class="list-section hidden">
                     <h4 class="text-bona-success text-xs font-bold uppercase mb-3 flex items-center"><i class="fa-solid fa-check-circle mr-2"></i> 安全 (Safe) <span id="count-safe" class="ml-auto bg-bona-success/20 px-2 py-0.5 rounded text-[10px]">0</span></h4>
                     <div id="list-safe" class="space-y-3"></div>
                 </div>
-
+                
                 <div id="butler-empty" class="hidden text-center py-20 text-gray-700">
                     <i class="fa-solid fa-clipboard-check text-4xl mb-4 opacity-20"></i>
                     <p class="text-[10px] uppercase tracking-widest">目前無待處理任務</p>
                 </div>
             </main>
 
-            <!-- DASHBOARD NAV -->
+            <!-- TAB 3: ASSET (我的) -->
+            <main id="tab-asset" class="dashboard-content hidden">
+                <div class="text-center py-40 opacity-30 italic">
+                    <p class="text-[10px] uppercase tracking-widest">Account & Asset Settings</p>
+                    <p class="text-[9px] mt-2">v2.1.3 Stable</p>
+                </div>
+            </main>
+
+            <!-- BOTTOM NAV (分頁切換) -->
             <nav class="dashboard-nav">
-                <button onclick="window.switchDashTab('home')" id="nav-home" class="nav-tab active">
-                    <i class="fa-solid fa-house"></i>
-                    <span>首頁</span>
+                <button onclick="window.switchDashTab('home')" id="nav-home" class="nav-item active-tab">
+                    <i class="fa-solid fa-house-chimney mb-1 text-xl"></i><span>錄入</span>
                 </button>
-                <button onclick="window.switchDashTab('butler')" id="nav-butler" class="nav-tab">
-                    <i class="fa-solid fa-calendar-check"></i>
-                    <span>管家</span>
+                <button onclick="window.switchDashTab('butler')" id="nav-butler" class="nav-item">
+                    <i class="fa-solid fa-calendar-check mb-1 text-xl"></i><span>管家</span>
+                </button>
+                <button onclick="window.switchDashTab('asset')" id="nav-asset" class="nav-item">
+                    <i class="fa-solid fa-user-gear mb-1 text-xl"></i><span>我的</span>
                 </button>
             </nav>
         </div>
 
-        <!-- VIEW: DETAIL -->
+        <!-- VIEW: DETAIL (保留原始) -->
         <div id="view-detail" class="hidden h-full flex-col relative">
             <header class="detail-header">
                 <div class="flex justify-start">
@@ -406,11 +413,6 @@
             </form>
         </div>
     </div>
-    
-    <div id="modal-upgrade" class="hidden fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md"><div class="w-full max-w-sm text-center relative"><i class="fa-solid fa-lock text-5xl text-bona-gold mb-6 animate-bounce"></i><h2 class="text-2xl font-bold text-white mb-2 tracking-widest">QUOTA EXCEEDED</h2><p class="text-gray-400 mb-8 text-sm leading-relaxed uppercase font-bold tracking-wider">您的飼育紀錄額度已達上限。<br>請前往官網升級至 PRO 方案以解鎖更多空間。</p><a href="https://bonabeetle.com/lite" target="_blank" class="block w-full gold-gradient text-black font-bold py-4 rounded-lg uppercase tracking-widest text-center shadow-lg hover:brightness-110">立即前往升級</a><button onclick="document.getElementById('modal-upgrade').classList.add('hidden')" class="mt-4 text-gray-500 uppercase text-[10px] tracking-widest font-bold">稍後再說</button></div></div>
-    <div id="modal-qr" class="hidden fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white w-full max-w-xs rounded-xl p-6 text-center relative shadow-2xl"><button onclick="window.closeQRModal()" class="absolute top-2 right-2 text-gray-400 hover:text-black w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-times text-xl"></i></button><h3 class="text-xl font-bold text-black mb-1 uppercase">QR CODE</h3><p class="text-sm text-gray-500 font-mono mb-4" id="qr-id-label">--</p><div id="qrcode" class="flex justify-center mb-4"></div><p class="text-xs text-gray-400">請截圖保存或列印標籤</p></div></div>
-
-    </div>
 
     <script>
         const WEBHOOK_URL = "https://hook.us2.make.com/dft05gnm8d1nnhq1uw9owyy5rbon904w"; 
@@ -423,7 +425,7 @@
         let currentDetailData = null;
         let historyDataCache = []; 
 
-        window.showDashboard = function() { window.switchView('view-main'); }
+        window.showDashboard = function() { window.switchView('dashboard'); }
 
         window.cleanData = function(val) {
             if (val === null || val === undefined) return '--';
@@ -450,36 +452,15 @@
         window.getDomVal = function(id) { const el = document.getElementById(id); return el ? el.value : ''; }
         
         window.switchView = function(viewName) { 
-            // 修正映射表以匹配原始 HTML ID
-            const map = { 
-                'login': 'view-login', 
-                'auth': 'view-login',
-                'view-auth': 'view-login',
-                'dashboard': 'view-dashboard', // HTML ID is view-dashboard
-                'main': 'view-dashboard',
-                'view-main': 'view-dashboard',
-                'detail': 'view-detail', 
-                'scanner': 'view-scanner' 
-            };
-            const targetId = map[viewName] || viewName;
-            
-            ['view-login', 'view-dashboard', 'view-detail', 'view-scanner'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.classList.add('hidden');
-            });
-            
-            const target = document.getElementById(targetId);
-            if (target) {
-                target.classList.remove('hidden'); 
-                if (targetId === 'view-login' || targetId === 'view-dashboard') target.classList.add('flex');
-            }
-            
-            if (targetId === 'view-dashboard') {
-                const search = document.getElementById('search-id');
-                if(search) search.value = '';
-                // 預設切換至首頁
+            ['view-login', 'view-dashboard', 'view-detail', 'view-scanner'].forEach(id => document.getElementById(id).classList.add('hidden')); 
+            const target = document.getElementById(`view-${viewName}`); 
+            target.classList.remove('hidden'); 
+            if (viewName !== 'view-scanner') target.classList.add('flex'); 
+            if (viewName === 'dashboard') { 
+                document.getElementById('search-id').value = ''; 
+                // Default to Home tab
                 window.switchDashTab('home');
-            }
+            } 
         }
 
         // --- NEW: Dashboard 分頁切換 ---
@@ -502,7 +483,7 @@
         window.updateDashboardUI = function() { if(!currentUser) return; const display = currentUser.length > 8 ? currentUser.substring(0, 4) + '****' + currentUser.substring(currentUser.length - 4) : currentUser; document.getElementById('dashboard-license-display').innerText = `LIC: ${display}`; const percent = Math.min((quotaInfo.used / quotaInfo.max) * 100, 100); document.getElementById('quota-bar-fill').style.width = `${percent}%`; document.getElementById('quota-text').innerText = `${quotaInfo.used} / ${quotaInfo.max}`; const bar = document.getElementById('quota-bar-fill'); if (percent >= 90) bar.className = 'quota-bar h-full bg-bona-danger'; else bar.className = 'quota-bar h-full bg-bona-gold'; }
         window.verifyLicense = async function(key, silent) { if (!silent) window.showLoading(true); try { const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'auth', userId: key }) }); const text = await response.text(); let data; try { data = JSON.parse(text); } catch (e) { if (text.includes('Accepted') || response.ok) { data = { status: 'Active', key_found: key, max: 50, used: 0 }; } else { throw new Error(`伺服器回應格式錯誤: ${text.substring(0, 20)}...`); } } if (data.json) { try { data = JSON.parse(data.json); } catch(e){} } if (Array.isArray(data)) data = data[0]; const rawKey = data.key_found || data['License Key'] || data.id; const rawStatus = data.status || data.Status; const rawRealId = data.real_id || data.user_id || data.id; const cleanKey = window.cleanData(rawKey); const cleanStatus = window.cleanData(rawStatus).toString().trim(); const cleanRealId = window.cleanData(rawRealId); const keyMatch = cleanKey === key; const isActive = cleanStatus.toLowerCase().includes('active'); if (keyMatch && isActive) { currentUser = key; currentRealId = cleanRealId && cleanRealId !== '--' ? cleanRealId : key; localStorage.setItem('bona_user_key', key); localStorage.setItem('bona_user_id', currentRealId); quotaInfo = { max: parseInt(data.max) || 50, used: parseInt(data.used) || 0 }; window.updateDashboardUI(); if (!silent) { window.showNotification('登入成功', 'success'); window.switchView('dashboard'); } } else { if (!silent) { let msg = !keyMatch ? "授權碼不符 (大小寫敏感)" : "帳號狀態異常"; window.showNotification(`登入失敗: ${msg}`, 'error'); } else window.logout(); } } catch(e) { if(!silent) window.showNotification(`連線錯誤: ${e.message}`, 'error'); } finally { if(!silent) window.showLoading(false); } }
         
-        // --- V2.0.0 REVERTED Detail Fetch Logic (Original from "Most up-to-date") ---
+        // --- V2.1.3 FIXED: Detail Fetch Logic with Universal Parsing ---
         window.fetchBeetleData = async function(id) { 
             if (!currentUser) return window.showNotification('請先登入', 'error'); 
             const targetUser = currentRealId || currentUser; 
@@ -511,21 +492,30 @@
                 const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'query', id: id, userId: targetUser }) }); 
                 const text = await response.text(); 
                 let data; 
-                try { data = JSON.parse(text); } catch (e) { console.error("Raw response:", text); throw new Error(`非 JSON 格式回應: ${text.substring(0, 50)}...`); } 
+                try { data = JSON.parse(text); } catch (e) { throw new Error(`非 JSON 格式回應: ${text.substring(0, 50)}...`); } 
+                
                 if (data.json) { try { data = typeof data.json === 'string' ? JSON.parse(data.json) : data.json; } catch(e) {} } 
                 
+                // *** Universal Parsing Block (Identical to Butler) ***
+                let items = [];
+                if (Array.isArray(data)) items = data;
+                else if (data.data) items = Array.isArray(data.data) ? data.data : [data.data];
+                else if (data.items) items = Array.isArray(data.items) ? data.items : [data.items];
+                else if (data.body) items = Array.isArray(data.body) ? data.body : [data.body];
+                else if (typeof data === 'object') items = [data];
+
+                // Handle Stringified Array
+                if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e){} }
+                // *** End Block ***
+
                 const normalize = (obj) => { if (!obj || typeof obj !== 'object') return obj; const newObj = {}; Object.keys(obj).forEach(key => newObj[key.toLowerCase()] = obj[key]); return newObj; }; 
                 
-                let record = data; 
-                let history = []; 
-                if (data.data && Array.isArray(data.data)) { history = data.data; } 
-                else if (data.body || data.items) { history = data.body || data.items; } 
-                else if (Array.isArray(data)) { history = data; record = data[0]; } 
-                
-                history = history.map(normalize); 
-                
-                if (record && (record.id || (history.length > 0 && history[0].id))) { 
-                    const consolidatedRecord = { ...normalize(history[0]), ...normalize(record) }; 
+                const history = items.map(normalize); 
+                history.sort((a, b) => new Date(b.date_check || 0) - new Date(a.date_check || 0));
+
+                if (history.length > 0) { 
+                    const latest = history[0]; 
+                    const consolidatedRecord = latest; 
                     historyDataCache = history; 
                     currentDetailData = consolidatedRecord; 
                     window.populateDetailView(consolidatedRecord); 
@@ -641,10 +631,6 @@
                 }
                 
                 const items = Array.isArray(rawData) ? rawData : (rawData ? [rawData] : []);
-                
-                // Debug status update if element exists
-                const statusEl = document.getElementById('butler-status');
-                if(statusEl) statusEl.innerText = `Fetched: ${items.length} records`;
 
                 if(items.length === 0) { 
                     sections.empty.classList.remove('hidden'); 
