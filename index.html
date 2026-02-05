@@ -49,9 +49,10 @@
 </head>
 <body>
 
+    <!-- 加載遮罩 -->
     <div id="loading-overlay" class="fixed inset-0 bg-black/90 z-[999] hidden flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
-        <p class="text-bona-gold text-sm font-bold tracking-widest animate-pulse italic">BONA SYNCING...</p>
+        <p class="text-bona-gold text-sm font-bold tracking-widest animate-pulse italic text-center">BONA DATA SYNCING...</p>
     </div>
 
     <div id="app-container">
@@ -73,7 +74,7 @@
         <div id="view-main" class="view-section">
             <header class="fixed-header px-6">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="font-bold text-lg text-white">BONA <span class="text-bona-gold">LITE</span></span>
+                    <span class="font-bold text-lg text-white italic">BONA <span class="text-bona-gold">LITE</span></span>
                     <div class="flex items-center gap-2">
                         <span id="user-tag" class="text-[9px] font-mono text-bona-gold bg-bona-card px-2 py-0.5 rounded border border-gray-800 tracking-tighter">--</span>
                         <button onclick="handleLogout()" class="text-gray-600 active:text-white transition-colors"><i class="fa-solid fa-right-from-bracket"></i></button>
@@ -113,30 +114,55 @@
             <!-- TAB 2: BUTLER (換土管家 - 新增功能) -->
             <main id="tab-butler" class="app-content hidden">
                 <div class="flex justify-between items-end mb-6">
-                    <div><h3 class="text-white text-xl font-bold italic">換土工作單</h3><p class="text-[10px] text-bona-muted uppercase tracking-widest">Butler System | 60D Cycle</p></div>
-                    <button onclick="refreshTaskButler()" class="bg-bona-card p-2 rounded-lg border border-gray-700 text-bona-gold active:rotate-180 transition-all duration-500"><i class="fa-solid fa-rotate"></i></button>
+                    <div>
+                        <h3 class="text-white text-xl font-bold italic">換土工作單</h3>
+                        <p class="text-[10px] text-bona-muted uppercase tracking-widest">Butler System | 60D Cycle</p>
+                    </div>
+                    <button onclick="refreshTaskButler()" class="bg-bona-card p-2 rounded-lg border border-gray-700 text-bona-gold active:rotate-180 transition-all duration-500">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
                 </div>
+                
                 <!-- 逾期 -->
                 <div id="section-overdue" class="list-section hidden">
-                    <h4 class="list-header text-bona-danger"><span>🔴 已逾期 (OVERDUE)</span><span id="count-overdue" class="bg-bona-danger/10 px-2 rounded">0</span></h4>
+                    <h4 class="list-header text-bona-danger">
+                        <span>🔴 已逾期 (OVERDUE)</span>
+                        <span id="count-overdue" class="bg-bona-danger/10 px-2 rounded">0</span>
+                    </h4>
                     <div id="list-overdue" class="space-y-3"></div>
                 </div>
+                
                 <!-- 警示 -->
                 <div id="section-warning" class="list-section hidden">
-                    <h4 class="list-header text-bona-gold"><span>🟡 警示 (URGENT - 14D)</span><span id="count-warning" class="bg-bona-gold/10 px-2 rounded">0</span></h4>
+                    <h4 class="list-header text-bona-gold">
+                        <span>🟡 警示 (URGENT - 14D)</span>
+                        <span id="count-warning" class="bg-bona-gold/10 px-2 rounded">0</span>
+                    </h4>
                     <div id="list-warning" class="space-y-3"></div>
                 </div>
+                
                 <!-- 安全 -->
                 <div id="section-safe" class="list-section hidden">
-                    <h4 class="list-header text-bona-success"><span>🟢 安全 (SAFE - 30D)</span><span id="count-safe" class="bg-bona-success/10 px-2 rounded">0</span></h4>
+                    <h4 class="list-header text-bona-success">
+                        <span>🟢 安全 (SAFE - 30D)</span>
+                        <span id="count-safe" class="bg-bona-success/10 px-2 rounded">0</span>
+                    </h4>
                     <div id="list-safe" class="space-y-3"></div>
                 </div>
-                <div id="butler-empty" class="hidden text-center py-20 text-gray-700"><i class="fa-solid fa-clipboard-check text-3xl mb-2 opacity-20"></i><p class="text-[10px] uppercase">目前無待處理任務</p></div>
+                
+                <!-- 空白提示 -->
+                <div id="butler-empty" class="hidden text-center py-20 text-gray-700">
+                    <i class="fa-solid fa-clipboard-check text-3xl mb-2 opacity-20"></i>
+                    <p class="text-[10px] uppercase">目前無待處理任務</p>
+                </div>
             </main>
 
-            <!-- TAB 3: ASSET (我的) -->
+            <!-- TAB 3: ASSET (我的/設定) -->
             <main id="tab-asset" class="app-content hidden">
-                <div class="text-center py-40 opacity-30 italic"><p class="text-[10px] uppercase tracking-widest">Asset Analysis Under Development</p></div>
+                <div class="text-center py-40 opacity-30 italic">
+                    <p class="text-[10px] uppercase tracking-widest">Account & Asset Settings</p>
+                    <p class="text-[9px] mt-2">v1.6.5 Stable Release</p>
+                </div>
             </main>
 
             <nav class="bottom-nav">
@@ -147,7 +173,7 @@
         </div>
     </div>
 
-    <!-- MODAL: 新蟲錄入 (依照指令優化性別與狀態預設) -->
+    <!-- MODAL: 手動錄入 (性別與狀態預設) -->
     <div id="modal-new-entry" class="fixed inset-0 bg-black/90 z-[200] hidden flex items-center justify-center p-6">
         <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative">
             <h3 class="text-bona-gold font-bold mb-6 italic tracking-widest text-lg">NEW ASSET ENTRY</h3>
@@ -157,16 +183,17 @@
                     <input type="number" id="new-weight" step="0.1" placeholder="體重 (g)" class="col-span-1">
                     <input type="date" id="new-date" class="col-span-1 text-xs">
                 </div>
-                <div class="flex gap-4">
+                <div class="text-[9px] text-gray-500 italic">預設屬性: 性別=Unknown, 狀態=Larva</div>
+                <div class="flex gap-4 pt-2">
                     <button type="button" onclick="closeModals()" class="flex-1 border border-gray-700 py-3 rounded-xl text-[11px] font-bold uppercase">取消</button>
-                    <button type="submit" class="flex-1 bg-bona-gold text-black py-3 rounded-xl text-[11px] font-black uppercase">提交紀錄</button>
+                    <button type="submit" class="flex-1 bg-bona-gold text-black py-3 rounded-xl text-[11px] font-black uppercase">提交錄入</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // --- 核心參數 (維持原有設定) ---
+        // --- 核心參數 (完全保留原始版本) ---
         const WEBHOOK_URL = "https://hook.us2.make.com/dft05gnm8d1nnhq1uw9owyy5rbon904w";
         let currentUser = localStorage.getItem('user_key');
         let html5QrCode = null;
@@ -174,6 +201,7 @@
         // --- 基本 UI 工具 ---
         function showLoading(s) { document.getElementById('loading-overlay').classList[s ? 'remove' : 'add']('hidden'); }
         function switchView(v) { document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active')); document.getElementById(v).classList.add('active'); }
+        
         function switchTab(t) {
             document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
             document.getElementById(`tab-${t}`).classList.remove('hidden');
@@ -181,10 +209,14 @@
             document.getElementById(`nav-${t}`).classList.add('active-tab');
             if(t === 'butler') refreshTaskButler();
         }
-        function openNewEntryModal() { document.getElementById('modal-new-entry').classList.remove('hidden'); document.getElementById('new-date').value = new Date().toISOString().split('T')[0]; }
+        
+        function openNewEntryModal() { 
+            document.getElementById('modal-new-entry').classList.remove('hidden'); 
+            document.getElementById('new-date').value = new Date().toISOString().split('T')[0]; 
+        }
         function closeModals() { document.getElementById('modal-new-entry').classList.add('hidden'); }
 
-        // --- 登入邏輯 (維持原有運作版本) ---
+        // --- 登入與登出 (完全保留原始邏輯) ---
         async function handleLogin() {
             const keyInput = document.getElementById('auth-key');
             const key = keyInput.value.trim();
@@ -192,89 +224,179 @@
 
             showLoading(true);
             try {
-                const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'auth', userId: key }) });
+                const r = await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ type: 'auth', userId: key }) 
+                });
                 const d = await r.json();
                 if(d.status === 'success' || d.plan || d.max) {
                     localStorage.setItem('user_key', key);
                     currentUser = key;
                     initMainUI(d);
                     switchView('view-main');
-                } else { alert('授權碼無效或已過期'); }
-            } catch(e) { alert('伺服器連線失敗'); } finally { showLoading(false); }
+                } else { 
+                    alert('授權碼無效或已過期'); 
+                }
+            } catch(e) { 
+                alert('伺服器連線失敗'); 
+            } finally { 
+                showLoading(false); 
+            }
         }
 
-        function handleLogout() { localStorage.removeItem('user_key'); currentUser = null; location.reload(); }
+        function handleLogout() { 
+            localStorage.removeItem('user_key'); 
+            currentUser = null; 
+            location.reload(); 
+        }
+
         function initMainUI(d) {
             document.getElementById('user-tag').innerText = currentUser;
             const max = d.max || 100, used = d.used || 0;
             document.getElementById('quota-label').innerText = `${used} / ${max}`;
-            document.getElementById('quota-fill').style.width = `${(used/max)*100}%`;
+            document.getElementById('quota-fill').style.width = `${Math.min((used/max)*100, 100)}%`;
         }
 
-        // --- 掃描功能 (維持原始 HTML5-QRCode 邏輯) ---
+        // --- 掃描器功能 (完全保留原始版本) ---
         function openScanner() {
             document.getElementById('qr-reader-container').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => {
-                alert("掃描成功: " + decodedText);
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } }, 
+                (decodedText) => {
+                    alert("掃描成功: " + decodedText);
+                    closeScanner();
+                    // 未來可加入自動查詢邏輯
+                },
+                (errorMessage) => { /* 忽略掃描錯誤 */ }
+            ).catch(err => {
+                alert("相機啟動失敗");
                 closeScanner();
             });
         }
-        function closeScanner() { if(html5QrCode) html5QrCode.stop(); document.getElementById('qr-reader-container').classList.add('hidden'); }
+        function closeScanner() { 
+            if(html5QrCode) {
+                html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => console.log(err));
+            }
+            document.getElementById('qr-reader-container').classList.add('hidden'); 
+        }
 
-        // --- 智慧管家核心 (分頁 2 新增邏輯) ---
+        // --- 智慧管家 (新增分頁 2 核心邏輯) ---
         async function refreshTaskButler() {
-            const lists = { overdue: document.getElementById('list-overdue'), warning: document.getElementById('list-warning'), safe: document.getElementById('list-safe') };
-            const sections = { overdue: document.getElementById('section-overdue'), warning: document.getElementById('section-warning'), safe: document.getElementById('section-safe'), empty: document.getElementById('butler-empty') };
+            const lists = { 
+                overdue: document.getElementById('list-overdue'), 
+                warning: document.getElementById('list-warning'), 
+                safe: document.getElementById('list-safe') 
+            };
+            const sections = { 
+                overdue: document.getElementById('section-overdue'), 
+                warning: document.getElementById('section-warning'), 
+                safe: document.getElementById('section-safe'), 
+                empty: document.getElementById('butler-empty') 
+            };
+            
+            // UI 重置
             Object.values(lists).forEach(l => l.innerHTML = '');
             Object.values(sections).forEach(s => s.classList.add('hidden'));
             showLoading(true);
 
             try {
-                const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'census', userId: currentUser }) });
+                // 發送 Census 請求
+                const r = await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ type: 'census', userId: currentUser }) 
+                });
                 const d = await r.json();
                 const items = d.items || d.data || [];
-                if(items.length === 0) { sections.empty.classList.remove('hidden'); return; }
+                
+                if(items.length === 0) {
+                    sections.empty.classList.remove('hidden');
+                    return;
+                }
 
-                // 去重：每個 ID 只留最新紀錄
+                // 1. 去重：針對每個 ID 只保留日期最新的一筆
                 const uniqueMap = {};
                 items.forEach(i => {
                     const id = i.id || i.ID;
                     if(!id || !i.date_check) return;
                     const date = new Date(i.date_check);
+                    if(isNaN(date.getTime())) return;
+
                     if(!uniqueMap[id] || date > new Date(uniqueMap[id].rawDate)) {
-                        uniqueMap[id] = { id, lastDate: i.date_check.split('T')[0], weight: i.weight || 0, rawDate: date };
+                        uniqueMap[id] = {
+                            id: id,
+                            lastDate: i.date_check.split('T')[0],
+                            weight: i.weight || 0,
+                            rawDate: date
+                        };
                     }
                 });
 
+                // 2. 計算與分級
                 const today = new Date();
                 let counts = { overdue: 0, warning: 0, safe: 0 };
-                // 排序並渲染
+                
+                // 排序：由近到遠
                 const sorted = Object.values(uniqueMap).sort((a,b) => {
-                    const nA = new Date(a.rawDate).setDate(a.rawDate.getDate()+60);
-                    const nB = new Date(b.rawDate).setDate(b.rawDate.getDate()+60);
-                    return nA - nB;
+                    const nextA = new Date(a.rawDate).setDate(a.rawDate.getDate() + 60);
+                    const nextB = new Date(b.rawDate).setDate(b.rawDate.getDate() + 60);
+                    return nextA - nextB;
                 });
 
                 sorted.forEach(bug => {
-                    const next = new Date(bug.rawDate); next.setDate(next.getDate() + 60);
-                    const diff = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
-                    const nextStr = next.toISOString().split('T')[0];
-                    const card = `<div class="glass-panel p-4 rounded-xl border-l-4 ${diff < 0 ? 'border-bona-danger' : (diff <= 14 ? 'border-bona-gold' : 'border-bona-success')}">
-                        <div class="flex justify-between items-start mb-2"><span class="text-white font-mono font-bold tracking-tight">${bug.id}</span>
-                            <span class="text-[9px] font-black px-2 py-0.5 rounded ${diff < 0 ? 'bg-bona-danger/10 text-bona-danger' : (diff <= 14 ? 'bg-bona-gold/10 text-bona-gold' : 'bg-bona-success/10 text-bona-success')}">${diff < 0 ? '逾期 ' + Math.abs(diff) + ' 天' : '剩餘 ' + diff + ' 天'}</span>
+                    const nextDate = new Date(bug.rawDate);
+                    nextDate.setDate(nextDate.getDate() + 60);
+                    const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+                    const nextStr = nextDate.toISOString().split('T')[0];
+                    
+                    const card = `
+                        <div class="glass-panel p-4 rounded-xl border-l-4 ${diffDays < 0 ? 'border-bona-danger' : (diffDays <= 14 ? 'border-bona-gold' : 'border-bona-success')} active:bg-white/5 transition-colors">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-white font-mono font-bold tracking-tight">${bug.id}</span>
+                                <span class="text-[9px] font-black px-2 py-0.5 rounded ${diffDays < 0 ? 'bg-bona-danger/20 text-bona-danger' : (diffDays <= 14 ? 'bg-bona-gold/20 text-bona-gold' : 'bg-bona-success/20 text-bona-success')}">
+                                    ${diffDays < 0 ? '已逾期 ' + Math.abs(diffDays) + ' 天' : '剩餘 ' + diffDays + ' 天'}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 text-[10px] font-mono gap-y-1">
+                                <div class="text-gray-500">最新換土: <span class="text-white">${bug.lastDate}</span></div>
+                                <div class="text-gray-500 text-right">預計下次: <span class="text-bona-gold">${nextStr}</span></div>
+                                <div class="col-span-2 text-gray-500">目前體重: <span class="text-white font-bold">${bug.weight}g</span></div>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-2 text-[10px] font-mono"><div class="text-gray-500">最新換土: <span class="text-white">${bug.lastDate}</span></div><div class="text-gray-500 text-right">預計下次: <span class="text-bona-gold">${nextStr}</span></div><div class="col-span-2 text-gray-500 mt-1">體重: <span class="text-white font-bold">${bug.weight}g</span></div></div>
-                    </div>`;
-                    if (diff < 0) { lists.overdue.innerHTML += card; counts.overdue++; sections.overdue.classList.remove('hidden'); }
-                    else if (diff <= 14) { lists.warning.innerHTML += card; counts.warning++; sections.warning.classList.remove('hidden'); }
-                    else if (diff <= 30) { lists.safe.innerHTML += card; counts.safe++; sections.safe.classList.remove('hidden'); }
+                    `;
+
+                    if (diffDays < 0) {
+                        lists.overdue.innerHTML += card;
+                        counts.overdue++;
+                        sections.overdue.classList.remove('hidden');
+                    } else if (diffDays <= 14) {
+                        lists.warning.innerHTML += card;
+                        counts.warning++;
+                        sections.warning.classList.remove('hidden');
+                    } else if (diffDays <= 30) {
+                        lists.safe.innerHTML += card;
+                        counts.safe++;
+                        sections.safe.classList.remove('hidden');
+                    }
                 });
+
                 document.getElementById('count-overdue').innerText = counts.overdue;
                 document.getElementById('count-warning').innerText = counts.warning;
                 document.getElementById('count-safe').innerText = counts.safe;
-                if(counts.overdue + counts.warning + counts.safe === 0) sections.empty.classList.remove('hidden');
-            } catch(e) { console.error(e); } finally { showLoading(false); }
+
+                if (counts.overdue + counts.warning + counts.safe === 0) {
+                    sections.empty.classList.remove('hidden');
+                }
+
+            } catch(e) { 
+                console.error("Butler Error:", e);
+                alert("同步管家清單失敗");
+            } finally { 
+                showLoading(false); 
+            }
         }
 
         // --- 錄入提交 (預設性別與狀態) ---
@@ -283,6 +405,7 @@
             const id = document.getElementById('new-id').value.trim();
             const weight = document.getElementById('new-weight').value;
             const date = document.getElementById('new-date').value;
+            
             if(!id || !weight || !date) return alert('請填寫完整資訊');
 
             showLoading(true);
@@ -294,12 +417,28 @@
                     id: id,
                     weight: parseFloat(weight),
                     date_check: date,
-                    gender: 'Unknown', // 性別預設
-                    status: 'Larva'     // 狀態預設
+                    gender: 'Unknown', // 預設 Unknown
+                    status: 'Larva'     // 預設 幼蟲
                 };
-                const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                if(r.ok) { alert('錄入成功'); closeModals(); switchTab('home'); }
-            } catch(e) { alert('發送失敗'); } finally { showLoading(false); }
+                
+                const r = await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payload) 
+                });
+                
+                if(r.ok) { 
+                    alert('錄入成功'); 
+                    closeModals(); 
+                    switchTab('home'); 
+                } else {
+                    throw new Error("Submit Fail");
+                }
+            } catch(e) { 
+                alert('發送失敗'); 
+            } finally { 
+                showLoading(false); 
+            }
         }
 
         // --- 初始化頁面 ---
@@ -308,8 +447,14 @@
                 switchView('view-main');
                 switchTab('home');
                 // 自動同步一次 Quota
-                fetch(WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ type: 'auth', userId: currentUser }) })
-                .then(r => r.json()).then(d => initMainUI(d)).catch(e => console.log("Silent Init Fail"));
+                fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ type: 'auth', userId: currentUser }) 
+                })
+                .then(r => r.json())
+                .then(d => initMainUI(d))
+                .catch(e => console.log("Silent Sync Fail"));
             } else {
                 switchView('view-auth');
             }
