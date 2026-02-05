@@ -12,162 +12,110 @@
     <script>
         tailwind.config = {
             theme: {
-                extend: { 
-                    colors: { 
-                        bona: { 
-                            black: '#0f0f0f', 
-                            dark: '#1a1a1a', 
-                            card: '#262626', 
-                            gold: '#d4af37', 
-                            text: '#e5e5e5', 
-                            muted: '#a3a3a3', 
-                            danger: '#ef4444', 
-                            success: '#10b981' 
-                        } 
-                    } 
-                }
+                extend: { colors: { bona: { black: '#0f0f0f', dark: '#1a1a1a', card: '#262626', gold: '#d4af37', text: '#e5e5e5', muted: '#a3a3a3', danger: '#ef4444', success: '#10b981' } } }
             }
         }
     </script>
     <style>
-        html, body { height: 100%; width: 100%; margin: 0; padding: 0; background-color: #0f0f0f; color: #e5e5e5; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; background-color: #0f0f0f; color: #e5e5e5; overflow: hidden; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
         #app-container { display: flex; flex-direction: column; height: 100%; width: 100%; max-width: 480px; margin: 0 auto; position: relative; background-color: #0f0f0f; }
-        
-        /* 視圖切換 */
         .view-section { position: absolute; inset: 0; display: none; flex-direction: column; background-color: #0f0f0f; z-index: 10; }
         .view-section.active { display: flex; }
-        
-        /* 頂部固定 Header */
         .fixed-header { position: absolute; top: 0; left: 0; right: 0; z-index: 50; background-color: rgba(15,15,15,0.98); border-bottom: 1px solid #333; padding-top: max(env(safe-area-inset-top), 20px); min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
-        
-        /* 內容滾動區 */
-        .app-content { flex: 1; overflow-y: auto; padding-top: 140px; padding-bottom: 100px; padding-left: 1.25rem; padding-right: 1.25rem; }
-        
-        /* 底部導航 */
-        .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; z-index: 100; background-color: rgba(15,15,15,0.95); border-top: 1px solid #333; height: 85px; display: grid; grid-template-columns: repeat(3, 1fr); padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; transition: all 0.3s; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; }
+        .app-content { flex: 1; overflow-y: auto; padding-top: 140px; padding-bottom: 100px; padding-left: 1rem; padding-right: 1rem; }
+        .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; z-index: 100; background-color: rgba(15,15,15,0.95); border-top: 1px solid #333; height: 80px; display: grid; grid-template-columns: repeat(3, 1fr); padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; transition: all 0.3s; font-size: 10px; font-weight: bold; text-transform: uppercase; }
         .nav-item.active-tab { color: #d4af37; }
-        
-        /* UI 元件 */
-        .glass-panel { background: rgba(38,38,38,0.8); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(10px); }
+        .glass-panel { background: rgba(38,38,38,0.9); border: 1px solid rgba(255,255,255,0.1); }
         .list-section { margin-bottom: 24px; }
-        .list-header { font-size: 11px; font-weight: 800; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.1em; }
-        
-        .loader { border: 3px solid #333; border-top: 3px solid #d4af37; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+        .list-header { font-size: 12px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;}
+        input, select { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; }
+        .loader { border: 4px solid #333; border-top: 4px solid #d4af37; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* 輸入框樣式 */
-        input, select { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; transition: border-color 0.3s; }
-        input:focus { border-color: #d4af37; }
     </style>
 </head>
 <body>
 
-    <!-- 加載遮罩 -->
     <div id="loading-overlay" class="fixed inset-0 bg-black/90 z-[999] hidden flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
-        <p class="text-bona-gold text-xs font-bold tracking-[0.2em] animate-pulse">系統同步中</p>
+        <p class="text-bona-gold text-sm font-bold tracking-widest animate-pulse">BONA SYSTEM SYNCING</p>
     </div>
 
     <div id="app-container">
         
-        <!-- VIEW: AUTH (登入畫面) -->
+        <!-- 視圖：AUTH (登入) -->
         <div id="view-auth" class="view-section active flex items-center justify-center px-8">
-            <div class="w-full max-w-sm text-center">
-                <div class="mb-12">
-                    <h1 class="text-3xl font-black text-white tracking-tighter italic">BONA<span class="text-bona-gold">LITE</span></h1>
-                    <p class="text-bona-muted text-[10px] tracking-[0.3em] uppercase mt-2">Breeding Management System</p>
-                </div>
+            <div class="w-full text-center">
+                <h1 class="text-3xl font-black text-white italic mb-2">BONA <span class="text-bona-gold">LITE</span></h1>
+                <p class="text-[10px] text-gray-500 tracking-[0.3em] uppercase mb-12">Asset Management System</p>
                 <div class="space-y-4">
-                    <input type="password" id="auth-key" placeholder="輸入授權密鑰 (License Key)" class="text-center font-mono">
-                    <button onclick="handleLogin()" class="w-full bg-bona-gold text-black font-black py-4 rounded-xl hover:opacity-90 active:scale-95 transition-all">進入系統</button>
-                    <p class="text-[9px] text-gray-600 mt-8 font-mono">V1.7.0 STABLE | POWERED BY BBS</p>
+                    <input type="password" id="auth-key" placeholder="輸入授權碼 (License Key)" class="text-center font-mono">
+                    <button onclick="handleLogin()" class="w-full bg-bona-gold text-black font-black py-4 rounded-xl active:scale-95 transition-all">進入系統</button>
+                    <p class="text-[9px] text-gray-700 mt-10 font-mono">V1.7.2 STABLE | BBS DIGITAL ASSET</p>
                 </div>
             </div>
         </div>
 
-        <!-- VIEW: MAIN (主程式畫面) -->
+        <!-- 視圖：MAIN (主程式) -->
         <div id="view-main" class="view-section">
             <header class="fixed-header px-6">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="font-black text-lg tracking-wide text-white italic">BONA <span class="text-bona-gold text-sm not-italic">LITE</span></span>
-                    <div id="user-display" class="bg-bona-card px-3 py-1 rounded-full border border-gray-800 text-[10px] font-mono text-bona-gold">--</div>
+                <div class="flex justify-between items-center mb-3">
+                    <span class="font-bold text-lg text-white">BONA <span class="text-bona-gold">LITE</span></span>
+                    <span id="user-tag" class="text-[10px] font-mono text-bona-gold bg-bona-card px-2 py-1 rounded border border-gray-800">--</span>
                 </div>
-                <div class="px-1">
-                    <div class="flex justify-between text-[9px] text-gray-500 mb-1.5 font-bold uppercase tracking-widest">
-                        <span>個體資產額度</span>
-                        <span id="quota-text">0 / 0</span>
+                <div>
+                    <div class="flex justify-between text-[9px] text-gray-500 mb-1 font-mono">
+                        <span>資產額度狀態</span>
+                        <span id="quota-label">0 / 0</span>
                     </div>
-                    <div class="bg-gray-800/50 rounded-full h-1 w-full overflow-hidden">
-                        <div id="quota-bar" class="bg-bona-gold h-full transition-all duration-1000" style="width: 0%;"></div>
-                    </div>
+                    <div class="bg-gray-800 rounded-full h-1 w-full"><div id="quota-fill" class="bg-bona-gold h-full rounded-full transition-all duration-1000" style="width: 0%;"></div></div>
                 </div>
             </header>
 
-            <!-- TAB 1: HOME (錄入與查詢) -->
+            <!-- TAB 1: HOME -->
             <main id="tab-home" class="app-content">
                 <div class="grid grid-cols-2 gap-4 mb-8">
-                    <button class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all border-bona-gold/30">
-                        <i class="fa-solid fa-qrcode text-bona-gold text-2xl"></i>
-                        <span class="text-[11px] font-bold">掃碼作業</span>
-                    </button>
-                    <button class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all">
-                        <i class="fa-solid fa-plus text-bona-gold text-2xl"></i>
-                        <span class="text-[11px] font-bold">新蟲錄入</span>
-                    </button>
+                    <div class="glass-panel p-6 rounded-2xl text-center"><i class="fa-solid fa-qrcode text-bona-gold text-2xl mb-2"></i><p class="text-[11px] font-bold">掃碼作業</p></div>
+                    <div class="glass-panel p-6 rounded-2xl text-center"><i class="fa-solid fa-plus text-bona-gold text-2xl mb-2"></i><p class="text-[11px] font-bold">新蟲錄入</p></div>
                 </div>
-                
-                <div class="list-section">
-                    <h4 class="list-header"><span>最近操作紀錄</span></h4>
-                    <div id="recent-logs" class="text-center py-12 text-gray-600 text-[10px] uppercase tracking-widest">目前尚無數據</div>
+                <div class="list-section text-center py-20 opacity-20">
+                    <i class="fa-solid fa-database text-4xl mb-4"></i>
+                    <p class="text-[10px] tracking-widest uppercase">等待同步近期紀錄</p>
                 </div>
             </main>
 
-            <!-- TAB 2: BUTLER (智慧管家) -->
+            <!-- TAB 2: BUTLER (換土預警) -->
             <main id="tab-butler" class="app-content hidden">
                 <div class="flex justify-between items-end mb-6">
-                    <div>
-                        <h3 class="text-white text-xl font-bold">換土工作單</h3>
-                        <p class="text-[10px] text-bona-muted uppercase tracking-widest">數據管家 | 60 天週期預警</p>
-                    </div>
-                    <button onclick="refreshTaskButler()" class="bg-bona-card p-3 rounded-xl border border-gray-800 text-bona-gold active:rotate-180 transition-all duration-500"><i class="fa-solid fa-rotate"></i></button>
+                    <div><h3 class="text-white text-xl font-bold">換土工作單</h3><p class="text-[10px] text-bona-muted uppercase tracking-widest">60 天週期自動分析</p></div>
+                    <button onclick="refreshTaskButler()" class="bg-bona-card p-2 rounded-lg border border-gray-700 text-bona-gold active:rotate-180 transition-all duration-500"><i class="fa-solid fa-rotate"></i></button>
                 </div>
-
                 <div id="section-overdue" class="list-section hidden">
                     <h4 class="list-header text-bona-danger"><span>🔴 已逾期 (OVERDUE)</span><span id="count-overdue" class="bg-bona-danger/10 px-2 rounded">0</span></h4>
                     <div id="list-overdue" class="space-y-3"></div>
                 </div>
-
                 <div id="section-warning" class="list-section hidden">
                     <h4 class="list-header text-bona-gold"><span>🟡 警示 (URGENT - 14D)</span><span id="count-warning" class="bg-bona-gold/10 px-2 rounded">0</span></h4>
                     <div id="list-warning" class="space-y-3"></div>
                 </div>
-
                 <div id="section-safe" class="list-section hidden">
                     <h4 class="list-header text-bona-success"><span>🟢 安全 (SAFE - 30D)</span><span id="count-safe" class="bg-bona-success/10 px-2 rounded">0</span></h4>
                     <div id="list-safe" class="space-y-3"></div>
                 </div>
-
-                <div id="butler-empty" class="hidden text-center py-24 text-gray-700">
-                    <i class="fa-solid fa-circle-check text-3xl mb-4 opacity-20"></i>
-                    <p class="text-[10px] uppercase tracking-widest font-bold">所有個體狀態良好</p>
+                <div id="butler-empty" class="hidden text-center py-20 text-gray-700">
+                    <i class="fa-solid fa-check-double text-3xl mb-2"></i><p class="text-[10px] uppercase">目前無待處理任務</p>
                 </div>
             </main>
 
-            <!-- TAB 3: ASSET (資產分析) -->
+            <!-- TAB 3: ASSET -->
             <main id="tab-asset" class="app-content hidden">
-                <div class="text-center py-40">
-                    <i class="fa-solid fa-chart-pie text-gray-800 text-5xl mb-6"></i>
-                    <p class="text-bona-gold text-xs font-bold uppercase tracking-widest">Bona Asset Intelligence</p>
-                    <p class="text-gray-600 text-[10px] mt-2">進階資產分析功能開發中</p>
-                </div>
+                <div class="text-center py-40 opacity-50"><p class="text-xs uppercase tracking-widest">資產分析模組開發中</p></div>
             </main>
 
-            <!-- 導航欄 -->
             <nav class="bottom-nav">
-                <button onclick="switchTab('home')" id="nav-home" class="nav-item active-tab"><i class="fa-solid fa-house-chimney mb-1.5 text-lg"></i><span>首頁</span></button>
-                <button onclick="switchTab('butler')" id="nav-butler" class="nav-item"><i class="fa-solid fa-calendar-check mb-1.5 text-lg"></i><span>管家</span></button>
-                <button onclick="switchTab('asset')" id="nav-asset" class="nav-item"><i class="fa-solid fa-layer-group mb-1.5 text-lg"></i><span>資產</span></button>
+                <button onclick="switchTab('home')" id="nav-home" class="nav-item active-tab"><i class="fa-solid fa-house mb-1 text-xl"></i><span>首頁</span></button>
+                <button onclick="switchTab('butler')" id="nav-butler" class="nav-item"><i class="fa-solid fa-calendar-check mb-1 text-xl"></i><span>管家</span></button>
+                <button onclick="switchTab('asset')" id="nav-asset" class="nav-item"><i class="fa-solid fa-chart-pie mb-1 text-xl"></i><span>資產</span></button>
             </nav>
         </div>
     </div>
@@ -176,164 +124,94 @@
         const WEBHOOK_URL = "https://hook.us2.make.com/dft05gnm8d1nnhq1uw9owyy5rbon904w";
         let currentUser = localStorage.getItem('user_key');
 
-        // --- 視圖管理 ---
-        function switchView(viewId) {
-            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-        }
-
-        function switchTab(tabName) {
+        function showLoading(s) { document.getElementById('loading-overlay').classList[s ? 'remove' : 'add']('hidden'); }
+        function switchView(v) { document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active')); document.getElementById(v).classList.add('active'); }
+        function switchTab(t) {
             document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-            
+            document.getElementById(`tab-${t}`).classList.remove('hidden');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-tab'));
-            document.getElementById(`nav-${tabName}`).classList.add('active-tab');
-
-            if(tabName === 'butler') refreshTaskButler();
+            document.getElementById(`nav-${t}`).classList.add('active-tab');
+            if(t === 'butler') refreshTaskButler();
         }
 
-        // --- 登入邏輯 ---
         async function handleLogin() {
             const key = document.getElementById('auth-key').value;
             if(!key) return alert('請輸入授權碼');
-
             showLoading(true);
             try {
-                const res = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ type: 'auth', userId: key })
-                });
-                const data = await res.json();
-
-                if(data.status === 'success' || data.plan) {
+                const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'auth', userId: key }) });
+                const d = await r.json();
+                if(d.status === 'success' || d.plan) {
                     localStorage.setItem('user_key', key);
                     currentUser = key;
-                    updateUserUI(data);
+                    initMainUI(d);
                     switchView('view-main');
-                } else {
-                    alert('授權碼無效或已過期');
-                }
-            } catch(e) {
-                alert('伺服器連線失敗');
-            } finally {
-                showLoading(false);
-            }
+                } else { alert('授權碼無效或已過期'); }
+            } catch(e) { alert('連線失敗'); } finally { showLoading(false); }
         }
 
-        function updateUserUI(data) {
-            document.getElementById('user-display').innerText = currentUser;
-            if(data.used !== undefined) {
-                const max = data.max || 100;
-                const perc = Math.min((data.used / max) * 100, 100);
-                document.getElementById('quota-text').innerText = `${data.used} / ${max}`;
-                document.getElementById('quota-bar').style.width = `${perc}%`;
-            }
+        function initMainUI(d) {
+            document.getElementById('user-tag').innerText = currentUser;
+            const max = d.max || 100, used = d.used || 0;
+            document.getElementById('quota-label').innerText = `${used} / ${max}`;
+            document.getElementById('quota-fill').style.width = `${(used/max)*100}%`;
         }
 
-        // --- 管家邏輯 (核心去重與分類) ---
         async function refreshTaskButler() {
             const lists = { overdue: document.getElementById('list-overdue'), warning: document.getElementById('list-warning'), safe: document.getElementById('list-safe') };
             const sections = { overdue: document.getElementById('section-overdue'), warning: document.getElementById('section-warning'), safe: document.getElementById('section-safe'), empty: document.getElementById('butler-empty') };
-            
             Object.values(lists).forEach(l => l.innerHTML = '');
             Object.values(sections).forEach(s => s.classList.add('hidden'));
             showLoading(true);
 
             try {
-                const res = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ type: 'census', userId: currentUser })
-                });
-                const data = await res.json();
-                const rawItems = data.items || data.data || [];
+                const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'census', userId: currentUser }) });
+                const d = await r.json();
+                const items = d.items || d.data || [];
+                if(items.length === 0) { sections.empty.classList.remove('hidden'); return; }
 
-                if (rawItems.length === 0) {
-                    sections.empty.classList.remove('hidden');
-                    return;
-                }
-
-                // 1. 去重：只保留每個 ID 最新的紀錄
                 const uniqueMap = {};
-                rawItems.forEach(item => {
-                    const id = item.id || item.ID;
-                    if (!id || !item.date_check) return;
-                    const date = new Date(item.date_check);
-                    if (isNaN(date.getTime())) return;
-
-                    if (!uniqueMap[id] || date > new Date(uniqueMap[id].rawDate)) {
-                        uniqueMap[id] = {
-                            id: id,
-                            lastDate: item.date_check.split('T')[0],
-                            weight: item.weight || 0,
-                            rawDate: date
-                        };
+                items.forEach(i => {
+                    const id = i.id || i.ID;
+                    if(!id || !i.date_check) return;
+                    const date = new Date(i.date_check);
+                    if(!uniqueMap[id] || date > new Date(uniqueMap[id].rawDate)) {
+                        uniqueMap[id] = { id, lastDate: i.date_check.split('T')[0], weight: i.weight || 0, rawDate: date };
                     }
                 });
 
-                // 2. 分類與排序 (依預計換土日由近到遠)
                 const today = new Date();
                 let counts = { overdue: 0, warning: 0, safe: 0 };
-                
-                const sortedBugs = Object.values(uniqueMap).sort((a, b) => {
-                    const nextA = new Date(a.rawDate).setDate(a.rawDate.getDate() + 60);
-                    const nextB = new Date(b.rawDate).setDate(b.rawDate.getDate() + 60);
-                    return nextA - nextB;
-                });
-
-                sortedBugs.forEach(bug => {
-                    const nextDate = new Date(bug.rawDate);
-                    nextDate.setDate(nextDate.getDate() + 60);
-                    const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
-                    const nextDateStr = nextDate.toISOString().split('T')[0];
-                    
+                Object.values(uniqueMap).forEach(bug => {
+                    const next = new Date(bug.rawDate); next.setDate(next.getDate() + 60);
+                    const diff = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
                     const card = `
                         <div class="glass-panel p-4 rounded-xl active:bg-white/5 transition-all">
                             <div class="flex justify-between items-start mb-2">
-                                <span class="text-white font-mono font-bold tracking-tighter">${bug.id}</span>
-                                <span class="text-[9px] font-black px-2 py-0.5 rounded ${diffDays < 0 ? 'bg-bona-danger/20 text-bona-danger' : (diffDays <= 14 ? 'bg-bona-gold/20 text-bona-gold' : 'bg-bona-success/20 text-bona-success')}">
-                                    ${diffDays < 0 ? '已逾期 ' + Math.abs(diffDays) + ' 天' : '剩餘 ' + diffDays + ' 天'}
+                                <span class="text-white font-mono font-bold">${bug.id}</span>
+                                <span class="text-[9px] font-black px-2 py-0.5 rounded ${diff < 0 ? 'bg-bona-danger/20 text-bona-danger' : (diff <= 14 ? 'bg-bona-gold/20 text-bona-gold' : 'bg-bona-success/20 text-bona-success')}">
+                                    ${diff < 0 ? '已逾期 ' + Math.abs(diff) + ' 天' : '剩餘 ' + diff + ' 天'}
                                 </span>
                             </div>
-                            <div class="grid grid-cols-2 gap-y-2 text-[10px] font-mono">
+                            <div class="grid grid-cols-2 text-[10px] font-mono">
                                 <div class="text-gray-500">最新換土: <span class="text-white">${bug.lastDate}</span></div>
-                                <div class="text-gray-500 text-right">預計換土: <span class="text-bona-gold font-bold">${nextDateStr}</span></div>
+                                <div class="text-gray-500 text-right">預計下次: <span class="text-bona-gold">${next.toISOString().split('T')[0]}</span></div>
                                 <div class="col-span-2 text-gray-500">當前體重: <span class="text-white font-bold">${bug.weight}g</span></div>
                             </div>
                         </div>
                     `;
-
-                    if (diffDays < 0) { lists.overdue.innerHTML += card; counts.overdue++; sections.overdue.classList.remove('hidden'); }
-                    else if (diffDays <= 14) { lists.warning.innerHTML += card; counts.warning++; sections.warning.classList.remove('hidden'); }
-                    else if (diffDays <= 30) { lists.safe.innerHTML += card; counts.safe++; sections.safe.classList.remove('hidden'); }
+                    if (diff < 0) { lists.overdue.innerHTML += card; counts.overdue++; sections.overdue.classList.remove('hidden'); }
+                    else if (diff <= 14) { lists.warning.innerHTML += card; counts.warning++; sections.warning.classList.remove('hidden'); }
+                    else if (diff <= 30) { lists.safe.innerHTML += card; counts.safe++; sections.safe.classList.remove('hidden'); }
                 });
-
                 document.getElementById('count-overdue').innerText = counts.overdue;
                 document.getElementById('count-warning').innerText = counts.warning;
                 document.getElementById('count-safe').innerText = counts.safe;
-
-                if (counts.overdue + counts.warning + counts.safe === 0) sections.empty.classList.remove('hidden');
-
-            } catch (e) {
-                console.error("Refresh Error:", e);
-            } finally {
-                showLoading(false);
-            }
+                if(counts.overdue + counts.warning + counts.safe === 0) sections.empty.classList.remove('hidden');
+            } catch(e) { console.error(e); } finally { showLoading(false); }
         }
 
-        function showLoading(show) {
-            document.getElementById('loading-overlay').classList[show ? 'remove' : 'add']('hidden');
-        }
-
-        // --- 初始化 ---
-        window.onload = () => {
-            if(currentUser) {
-                switchView('view-main');
-                switchTab('home');
-                handleLogin(); // 自動重新驗證與同步
-            }
-        };
+        window.onload = () => { if(currentUser) { switchView('view-main'); handleLogin(); } else { switchView('view-auth'); } };
     </script>
 </body>
 </html>
