@@ -96,7 +96,7 @@
             padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom));
         }
 
-        /* NEW: DASHBOARD TABS (新增分頁樣式) */
+        /* DASHBOARD TABS */
         .dashboard-nav {
             position: absolute; bottom: 0; left: 0; right: 0; z-index: 100;
             background-color: rgba(15, 15, 15, 0.98);
@@ -107,7 +107,7 @@
         }
         .nav-tab {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #555; transition: all 0.3s;
+            color: #555; transition: all 0.3s; cursor: pointer;
         }
         .nav-tab.active { color: #d4af37; }
         .nav-tab i { font-size: 1.5rem; margin-bottom: 4px; }
@@ -121,13 +121,11 @@
         .quota-bar { transition: width 0.5s ease-out; }
         .lineage-link { color: #d4af37; text-decoration: underline; font-weight: bold; cursor: pointer; }
         
-        /* Force Clickability */
         button { cursor: pointer; pointer-events: auto; }
         input, select { -webkit-appearance: none; }
-        
         .nav-btn { position: relative; z-index: 100; cursor: pointer; }
 
-        /* Upgrade Banner Style */
+        /* Upgrade Banner */
         .upgrade-banner {
             background: linear-gradient(90deg, rgba(212, 175, 55, 0.1) 0%, rgba(38, 38, 38, 0.9) 100%);
             border: 1px solid rgba(212, 175, 55, 0.2);
@@ -148,7 +146,7 @@
     <!-- APP SHELL -->
     <div id="app-container">
 
-        <!-- VIEW: LOGIN (完全保留原版結構) -->
+        <!-- VIEW: LOGIN -->
         <div id="view-login" class="flex h-full flex-col items-center justify-center p-6 z-10 relative">
             <div class="mb-8 text-center">
                 <div class="w-24 h-24 mx-auto mb-4 bg-bona-dark rounded-full border-2 border-bona-gold flex items-center justify-center overflow-hidden shadow-lg shadow-bona-gold/20">
@@ -171,7 +169,7 @@
             </div>
         </div>
 
-        <!-- VIEW: DASHBOARD (修改結構以支援分頁) -->
+        <!-- VIEW: DASHBOARD -->
         <div id="view-dashboard" class="hidden h-full flex-col relative">
             <header class="fixed-header-wrapper p-4">
                 <div class="flex justify-between items-center mb-3 w-full px-4">
@@ -193,7 +191,7 @@
                 </div>
             </header>
 
-            <!-- TAB 1: HOME (原始 Dashboard 內容) -->
+            <!-- TAB 1: HOME -->
             <main id="tab-home" class="dashboard-content">
                 <div class="grid grid-cols-2 gap-5 mb-5 mt-4">
                     <button onclick="window.openScanner()" class="p-6 glass-panel rounded-xl flex flex-col items-center justify-center space-y-3 hover:bg-gray-800 transition-colors border-bona-gold/30 border min-h-[150px]"><i class="fa-solid fa-qrcode text-4xl text-bona-gold"></i><span class="text-sm font-bold tracking-wider">掃描 QR Code</span></button>
@@ -220,7 +218,7 @@
                 </div>
             </main>
 
-            <!-- TAB 2: BUTLER (新增管家功能) -->
+            <!-- TAB 2: BUTLER -->
             <main id="tab-butler" class="dashboard-content hidden">
                 <div class="flex justify-between items-end mb-6 mt-4">
                     <div>
@@ -230,7 +228,6 @@
                     <button onclick="window.refreshTaskButler()" class="bg-bona-card p-3 rounded-xl border border-gray-800 text-bona-gold hover:text-white transition-colors"><i class="fa-solid fa-rotate"></i></button>
                 </div>
 
-                <!-- 分類顯示區 -->
                 <div id="section-overdue" class="mb-6 hidden">
                     <h4 class="text-bona-danger text-xs font-bold uppercase mb-3 flex items-center"><i class="fa-solid fa-circle-exclamation mr-2"></i> 已逾期 (Overdue) <span id="count-overdue" class="ml-auto bg-bona-danger/20 px-2 py-0.5 rounded text-[10px]">0</span></h4>
                     <div id="list-overdue" class="space-y-3"></div>
@@ -252,7 +249,7 @@
                 </div>
             </main>
 
-            <!-- DASHBOARD NAV (底部切換) -->
+            <!-- DASHBOARD NAV -->
             <nav class="dashboard-nav">
                 <button onclick="window.switchDashTab('home')" id="nav-home" class="nav-tab active">
                     <i class="fa-solid fa-house"></i>
@@ -265,7 +262,7 @@
             </nav>
         </div>
 
-        <!-- VIEW: DETAIL (保留原始) -->
+        <!-- VIEW: DETAIL -->
         <div id="view-detail" class="hidden h-full flex-col relative">
             <header class="detail-header">
                 <div class="flex justify-start">
@@ -356,7 +353,6 @@
                 <!-- Smart ID -->
                 <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 space-y-4">
                     <label class="block text-xs text-bona-gold uppercase font-bold tracking-widest text-center mb-2">設定物種代碼 (Prefix)</label>
-                    <!-- Manual Input ONLY (Removed Datalist) -->
                     <input type="text" id="id-prefix" class="w-full bg-black border-2 border-bona-gold/50 rounded-xl text-white text-4xl p-4 outline-none text-center font-bold uppercase tracking-widest h-20 focus:border-bona-gold transition-colors" placeholder="D" value="D" oninput="this.value = this.value.toUpperCase(); window.updateIDPreview()">
                     <div class="text-center"><button type="button" onclick="document.getElementById('id-details').classList.toggle('hidden')" class="text-xs text-gray-500 underline hover:text-white">顯示/隱藏 詳細編碼設定</button></div>
                     <div id="id-details" class="hidden grid grid-cols-3 gap-3 pt-2 border-t border-gray-800">
@@ -368,7 +364,7 @@
                 </div>
                 <!-- Dates -->
                 <div class="grid grid-cols-2 gap-5"><div><label class="block text-xs text-gray-400 uppercase mb-2 font-bold">孵化日</label><input type="date" id="new-hatch-date" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base focus:border-bona-gold outline-none h-12"></div><div><label class="block text-xs text-gray-400 uppercase mb-2 font-bold">量測日期</label><input type="date" id="new-check-date" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base focus:border-bona-gold outline-none h-12"></div></div>
-                <!-- Lineage (No Status/Gender) -->
+                <!-- Lineage -->
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs text-gray-400 uppercase mb-2 font-bold">累代 (Generation)</label>
@@ -579,7 +575,7 @@
                 const r = await fetch(WEBHOOK_URL, { 
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ type: 'census', userId: currentUser || currentRealId }) 
+                    body: JSON.stringify({ type: 'census', userId: currentRealId || currentUser }) 
                 });
                 const d = await r.json();
                 // Handle different Make.com array structures
