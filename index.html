@@ -133,7 +133,7 @@
 
     <div id="app-container">
 
-        <!-- VIEW: LOGIN (完全保留原始設定) -->
+        <!-- VIEW: LOGIN (原始) -->
         <div id="view-login" class="flex h-full flex-col items-center justify-center p-6 z-10 relative">
             <div class="mb-8 text-center">
                 <div class="w-24 h-24 mx-auto mb-4 bg-bona-dark rounded-full border-2 border-bona-gold flex items-center justify-center overflow-hidden shadow-lg shadow-bona-gold/20">
@@ -148,7 +148,7 @@
                     <label class="block text-bona-muted text-xs uppercase font-bold mb-2 tracking-wider">授權碼 (License Key)</label>
                     <input type="text" id="login-license" class="w-full bg-bona-black border border-gray-700 text-white rounded-lg p-4 focus:outline-none focus:border-bona-gold transition-colors text-center font-mono tracking-widest text-lg" placeholder="輸入授權碼 (區分大小寫)">
                 </div>
-                <button onclick="window.handleLogin()" class="w-full bg-bona-gold text-black font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all text-lg tracking-widest relative z-50">
+                <button onclick="window.handleLogin()" class="w-full gold-gradient text-black font-bold py-4 rounded-lg shadow-lg hover:brightness-110 text-lg relative z-50">
                     驗證並登入
                 </button>
                 <div class="text-center pt-2">
@@ -157,7 +157,7 @@
             </div>
         </div>
 
-        <!-- VIEW: DASHBOARD -->
+        <!-- VIEW: DASHBOARD (原始+分頁) -->
         <div id="view-dashboard" class="hidden h-full flex-col relative">
             <header class="fixed-header-wrapper px-6">
                 <div class="flex justify-between items-center mb-3 w-full px-4">
@@ -206,12 +206,12 @@
                 </div>
             </main>
 
-            <!-- TAB 2: BUTLER (這是唯一擴充的區塊，樣式繼承自 glass-panel) -->
+            <!-- TAB 2: BUTLER (管家功能) -->
             <main id="tab-butler" class="dashboard-content hidden">
                 <div class="flex justify-between items-end mb-6 mt-4">
                     <div>
                         <h3 class="text-white text-xl font-bold tracking-wider">換土工作單</h3>
-                        <p class="text-[10px] text-bona-muted uppercase tracking-widest" id="butler-debug">Maintenance | 60 Days Cycle</p>
+                        <p class="text-[10px] text-bona-muted uppercase tracking-widest" id="butler-status">Maintenance | 60 Days Cycle</p>
                     </div>
                     <button onclick="window.refreshTaskButler()" class="bg-bona-card p-3 rounded-xl border border-gray-800 text-bona-gold hover:text-white transition-colors"><i class="fa-solid fa-rotate"></i></button>
                 </div>
@@ -455,7 +455,7 @@
                 'login': 'view-login', 
                 'auth': 'view-login',
                 'view-auth': 'view-login',
-                'dashboard': 'view-dashboard', 
+                'dashboard': 'view-dashboard', // HTML ID is view-dashboard
                 'main': 'view-dashboard',
                 'view-main': 'view-dashboard',
                 'detail': 'view-detail', 
@@ -482,7 +482,7 @@
             }
         }
 
-        // --- NEW: Dashboard 分頁切換 (無損植入) ---
+        // --- NEW: Dashboard 分頁切換 ---
         window.switchDashTab = function(tab) {
             document.querySelectorAll('.dashboard-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-tab'));
@@ -501,6 +501,8 @@
         window.updateIDPreview = function() { const prefix = document.getElementById('id-prefix').value || 'D'; const year = document.getElementById('id-year').value; let batch = document.getElementById('id-batch').value || '00'; let seq = document.getElementById('id-seq').value || '000'; if (batch.length < 2) batch = '0' + batch; if (seq.length < 3) seq = ('000' + seq).slice(-3); const fullId = `${prefix}-${year}-${batch}-${seq}`; document.getElementById('id-preview').innerText = fullId; return fullId; }
         window.updateDashboardUI = function() { if(!currentUser) return; const display = currentUser.length > 8 ? currentUser.substring(0, 4) + '****' + currentUser.substring(currentUser.length - 4) : currentUser; document.getElementById('dashboard-license-display').innerText = `LIC: ${display}`; const percent = Math.min((quotaInfo.used / quotaInfo.max) * 100, 100); document.getElementById('quota-bar-fill').style.width = `${percent}%`; document.getElementById('quota-text').innerText = `${quotaInfo.used} / ${quotaInfo.max}`; const bar = document.getElementById('quota-bar-fill'); if (percent >= 90) bar.className = 'quota-bar h-full bg-bona-danger'; else bar.className = 'quota-bar h-full bg-bona-gold'; }
         window.verifyLicense = async function(key, silent) { if (!silent) window.showLoading(true); try { const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'auth', userId: key }) }); const text = await response.text(); let data; try { data = JSON.parse(text); } catch (e) { if (text.includes('Accepted') || response.ok) { data = { status: 'Active', key_found: key, max: 50, used: 0 }; } else { throw new Error(`伺服器回應格式錯誤: ${text.substring(0, 20)}...`); } } if (data.json) { try { data = JSON.parse(data.json); } catch(e){} } if (Array.isArray(data)) data = data[0]; const rawKey = data.key_found || data['License Key'] || data.id; const rawStatus = data.status || data.Status; const rawRealId = data.real_id || data.user_id || data.id; const cleanKey = window.cleanData(rawKey); const cleanStatus = window.cleanData(rawStatus).toString().trim(); const cleanRealId = window.cleanData(rawRealId); const keyMatch = cleanKey === key; const isActive = cleanStatus.toLowerCase().includes('active'); if (keyMatch && isActive) { currentUser = key; currentRealId = cleanRealId && cleanRealId !== '--' ? cleanRealId : key; localStorage.setItem('bona_user_key', key); localStorage.setItem('bona_user_id', currentRealId); quotaInfo = { max: parseInt(data.max) || 50, used: parseInt(data.used) || 0 }; window.updateDashboardUI(); if (!silent) { window.showNotification('登入成功', 'success'); window.switchView('dashboard'); } } else { if (!silent) { let msg = !keyMatch ? "授權碼不符 (大小寫敏感)" : "帳號狀態異常"; window.showNotification(`登入失敗: ${msg}`, 'error'); } else window.logout(); } } catch(e) { if(!silent) window.showNotification(`連線錯誤: ${e.message}`, 'error'); } finally { if(!silent) window.showLoading(false); } }
+        
+        // --- V2.0.0 REVERTED Detail Fetch Logic (Original from "Most up-to-date") ---
         window.fetchBeetleData = async function(id) { 
             if (!currentUser) return window.showNotification('請先登入', 'error'); 
             const targetUser = currentRealId || currentUser; 
@@ -509,36 +511,25 @@
                 const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'query', id: id, userId: targetUser }) }); 
                 const text = await response.text(); 
                 let data; 
-                try { data = JSON.parse(text); } catch (e) { throw new Error(`非 JSON 格式回應: ${text.substring(0, 50)}...`); } 
-                
+                try { data = JSON.parse(text); } catch (e) { console.error("Raw response:", text); throw new Error(`非 JSON 格式回應: ${text.substring(0, 50)}...`); } 
                 if (data.json) { try { data = typeof data.json === 'string' ? JSON.parse(data.json) : data.json; } catch(e) {} } 
                 
-                // *** CRITICAL FIX START: Robust Array Extraction similar to Butler ***
-                let items = [];
-                if (Array.isArray(data)) items = data;
-                else if (data.data) items = Array.isArray(data.data) ? data.data : [data.data];
-                else if (data.items) items = Array.isArray(data.items) ? data.items : [data.items];
-                else if (typeof data === 'object') items = [data];
-
-                // Handle Stringified Array
-                if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e){} }
-                // *** CRITICAL FIX END ***
-
                 const normalize = (obj) => { if (!obj || typeof obj !== 'object') return obj; const newObj = {}; Object.keys(obj).forEach(key => newObj[key.toLowerCase()] = obj[key]); return newObj; }; 
                 
-                // Normalize keys to lowercase
-                const history = items.map(normalize); 
+                let record = data; 
+                let history = []; 
+                if (data.data && Array.isArray(data.data)) { history = data.data; } 
+                else if (data.body || data.items) { history = data.body || data.items; } 
+                else if (Array.isArray(data)) { history = data; record = data[0]; } 
                 
-                // Sort by date descending (Newest first)
-                history.sort((a, b) => new Date(b.date_check || 0) - new Date(a.date_check || 0));
-
-                if (history.length > 0) { 
-                    const latest = history[0]; // Use latest record for header details
-                    const consolidatedRecord = latest; 
+                history = history.map(normalize); 
+                
+                if (record && (record.id || (history.length > 0 && history[0].id))) { 
+                    const consolidatedRecord = { ...normalize(history[0]), ...normalize(record) }; 
                     historyDataCache = history; 
                     currentDetailData = consolidatedRecord; 
                     window.populateDetailView(consolidatedRecord); 
-                    window.renderHistoryList(history); // Render all history
+                    window.renderHistoryList(history); 
                     window.calculateGrowth(consolidatedRecord, history); 
                     window.switchView('detail'); 
                     document.getElementById('search-id').value = ''; 
@@ -556,13 +547,7 @@
         window.populateDetailView = function(data) { document.getElementById('detail-header-id').innerText = window.cleanData(data.id); document.getElementById('d-id').innerText = window.cleanData(data.id); document.getElementById('d-gen').innerText = window.cleanData(data.generation); document.getElementById('d-gen-detail').innerText = window.cleanData(data.generation); document.getElementById('d-hatch').innerText = window.cleanData(data.date_hatch); document.getElementById('d-weight').innerText = window.cleanData(data.weight); document.getElementById('d-check').innerText = window.cleanData(data.date_check); document.getElementById('d-sire').innerHTML = window.createLineageLink(data.sire_size); document.getElementById('d-dam').innerHTML = window.createLineageLink(data.dam_size); document.getElementById('d-box-type').innerText = window.cleanData(data.box_type); document.getElementById('d-box-vol').innerText = window.cleanData(data.box_vol); document.getElementById('d-sub-main').innerText = window.cleanData(data.sub_main); document.getElementById('d-sub-sec').innerText = window.cleanData(data.sub_sec); document.getElementById('d-booster').innerText = window.cleanData(data.booster); document.getElementById('update-id').value = window.cleanData(data.id); }
         window.renderHistoryList = function(arr) { const c = document.getElementById('history-list'); c.innerHTML=''; if(!arr || arr.length===0) { document.getElementById('history-section').classList.add('hidden'); return; } document.getElementById('history-section').classList.remove('hidden'); arr.forEach(i => { const d=document.createElement('div'); d.className='glass-panel p-4 rounded-xl relative'; const date = window.cleanData(i.date_check); const weight = window.cleanData(i.weight); const sub = window.cleanData(i.sub_main); const sub_sec = window.cleanData(i.sub_sec); const booster = window.cleanData(i.booster); const box = window.cleanData(i.box_type); const vol = window.cleanData(i.box_vol); d.innerHTML=`<div class="flex justify-between items-start"><div class="flex flex-col space-y-1 w-2/3"><span class="text-xs text-gray-500">${date}</span><div class="text-xs text-bona-muted leading-relaxed"><span class="text-white">${sub}</span>${sub_sec!=='--'&&sub_sec!=='無'?' + '+sub_sec:''}<br>${booster!=='--'&&booster!=='無添加'?'<span class="text-bona-gold">'+booster+'</span>':''}</div></div><div class="flex flex-col items-end w-1/3"><span class="text-white font-bold text-xl mb-1">${weight}g</span><div class="text-[10px] text-gray-500 text-right">${box}<br>${vol}</div></div></div>`; c.appendChild(d); }); }
         
-        window.handleLogin = function() { 
-            // 修正：使用 HTML 中真實存在的 ID (login-license)
-            const key = document.getElementById('login-license').value.trim(); 
-            if (!key) return window.showNotification('請輸入授權密鑰', 'error'); 
-            window.verifyLicense(key, false); 
-        }
-        
+        window.handleLogin = function() { const key = document.getElementById('login-license').value.trim(); if (!key) return window.showNotification('請輸入授權密鑰', 'error'); window.verifyLicense(key, false); }
         window.handleNewEntrySubmit = async function(e) {
             e.preventDefault();
             try {
@@ -628,7 +613,7 @@
         window.createLineageLink = function(text) { const val = window.cleanData(text); if (!val || val === '--' || val === '') return '--'; if (val.length > 2 && /[A-Z0-9]/.test(val)) { return `<span class="lineage-link" onclick="window.handleLineageClick('${val}')">${val}</span>`; } return val; }
         window.handleLineageClick = async function(id) { window.showNotification(`正在跳轉至親代: ${id}`, 'info'); await window.fetchBeetleData(id); }
 
-        // --- NEW: Butler Logic ---
+        // --- NEW: Butler Logic with Correct ID & Parsing ---
         window.refreshTaskButler = async function() {
             const lists = { overdue: document.getElementById('list-overdue'), warning: document.getElementById('list-warning'), safe: document.getElementById('list-safe') };
             const sections = { overdue: document.getElementById('section-overdue'), warning: document.getElementById('section-warning'), safe: document.getElementById('section-safe'), empty: document.getElementById('butler-empty') };
@@ -645,71 +630,71 @@
                     body: JSON.stringify({ type: 'census', userId: currentRealId || currentUser }) 
                 });
                 const d = await r.json();
-                // Handle different Make.com array structures
-                const items = d.items || d.data || d.body || [];
                 
-                // Debugging Counter for User
-                document.getElementById('butler-status').innerText = `Fetched: ${items.length} records`;
+                // 1. Robust Parsing
+                let rawData = d.items || d.data || d.body || [];
+                if (typeof rawData === 'string') {
+                    try {
+                        if (rawData.startsWith('"') && rawData.endsWith('"')) rawData = JSON.parse(rawData);
+                        rawData = JSON.parse(rawData);
+                    } catch (e) { rawData = []; }
+                }
+                
+                const items = Array.isArray(rawData) ? rawData : (rawData ? [rawData] : []);
+                
+                // Debug status update if element exists
+                const statusEl = document.getElementById('butler-status');
+                if(statusEl) statusEl.innerText = `Fetched: ${items.length} records`;
 
-                if(!items || items.length === 0) { 
+                if(items.length === 0) { 
                     sections.empty.classList.remove('hidden'); 
                     return; 
                 }
 
-                // 1. Deduplication (Keep latest date for each ID)
+                // 2. Deduplication
                 const uniqueMap = {};
                 items.forEach(raw => {
-                    const i = window.cleanData(raw); // Clean raw Make data
-                    // Access properties safely
-                    const id = i.id || i.ID || i.title; 
-                    const dateStr = i.date_check || i.Date_Check;
+                    const i = {};
+                    Object.keys(raw).forEach(key => i[key.toLowerCase()] = raw[key]);
+
+                    const id = i.id || i.title;
+                    const dateStr = i.date_check || i.date;
                     
-                    if(!id || !dateStr || id === '--') return;
-                    
+                    if(!id || !dateStr) return;
                     const date = new Date(dateStr);
                     if(isNaN(date.getTime())) return;
 
-                    // If new ID or newer date, update map
                     if(!uniqueMap[id] || date > new Date(uniqueMap[id].rawDate)) {
-                        uniqueMap[id] = {
-                            id: id,
-                            lastDate: dateStr.split('T')[0],
-                            weight: i.weight || i.Weight || 0,
-                            rawDate: date
-                        };
+                        uniqueMap[id] = { id: id, lastDate: dateStr.split('T')[0], weight: i.weight || 0, rawDate: date };
                     }
                 });
 
                 const today = new Date();
                 let counts = { overdue: 0, warning: 0, safe: 0 };
-                
-                // 2. Sort by Next Date (Urgent first)
                 const sorted = Object.values(uniqueMap).sort((a,b) => {
-                    const nextA = new Date(a.rawDate).setDate(a.rawDate.getDate() + 60);
-                    const nextB = new Date(b.rawDate).setDate(b.rawDate.getDate() + 60);
+                    const nextA = new Date(a.rawDate).setDate(a.rawDate.getDate()+60);
+                    const nextB = new Date(b.rawDate).setDate(b.rawDate.getDate()+60);
                     return nextA - nextB;
                 });
 
                 sorted.forEach(bug => {
                     const nextDate = new Date(bug.rawDate);
-                    nextDate.setDate(nextDate.getDate() + 60); // 60 Days Cycle
-                    const diffTime = nextDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    nextDate.setDate(nextDate.getDate() + 60);
+                    const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
                     const nextStr = nextDate.toISOString().split('T')[0];
                     
-                    // CRITICAL FIX: Ensure click triggers fetchBeetleData (Query flow) for full history
-                    // Added stopPropagation to prevent bubbling issues
+                    // FIXED: Click triggers window.fetchBeetleData which uses ORIGINAL logic
                     const card = `
-                        <div class="glass-panel p-4 rounded-xl border-l-4 ${diffDays < 0 ? 'border-bona-danger' : (diffDays <= 14 ? 'border-bona-gold' : 'border-bona-success')} active:bg-white/5 transition-all cursor-pointer" onclick="event.stopPropagation(); window.fetchBeetleData('${bug.id}')">
+                        <div class="glass-panel p-4 rounded-xl border-l-4 ${diffDays < 0 ? 'border-bona-danger' : (diffDays <= 14 ? 'border-bona-gold' : 'border-bona-success')} active:bg-white/5 transition-all mb-2 cursor-pointer" onclick="event.stopPropagation(); window.fetchBeetleData('${bug.id}')">
                             <div class="flex justify-between items-start mb-2">
-                                <span class="text-white font-mono font-bold tracking-tight">${bug.id}</span>
+                                <span class="text-white font-mono font-bold">${bug.id}</span>
                                 <span class="text-[9px] font-black px-2 py-0.5 rounded ${diffDays < 0 ? 'bg-bona-danger/20 text-bona-danger' : (diffDays <= 14 ? 'bg-bona-gold/20 text-bona-gold' : 'bg-bona-success/20 text-bona-success')} uppercase">
                                     ${diffDays < 0 ? 'OVERDUE ' + Math.abs(diffDays) + 'd' : 'DUE IN ' + diffDays + 'd'}
                                 </span>
                             </div>
-                            <div class="grid grid-cols-2 text-[10px] font-mono gap-y-1 text-gray-400">
-                                <div>Last: <span class="text-white">${bug.lastDate}</span></div>
-                                <div class="text-right">Next: <span class="text-bona-gold">${nextStr}</span></div>
+                            <div class="grid grid-cols-2 text-[10px] font-mono gap-y-1">
+                                <div class="text-gray-500">Last: <span class="text-white">${bug.lastDate}</span></div>
+                                <div class="text-gray-500 text-right">Next: <span class="text-bona-gold">${nextStr}</span></div>
                                 <div class="col-span-2 mt-1 pt-1 border-t border-gray-800 flex justify-between">
                                     <span>Current Weight:</span>
                                     <span class="text-white font-bold text-sm">${bug.weight}g</span>
@@ -717,28 +702,15 @@
                             </div>
                         </div>`;
 
-                    if (diffDays < 0) {
-                        lists.overdue.innerHTML += card;
-                        counts.overdue++;
-                        sections.overdue.classList.remove('hidden');
-                    } else if (diffDays <= 14) {
-                        lists.warning.innerHTML += card;
-                        counts.warning++;
-                        sections.warning.classList.remove('hidden');
-                    } else { // Changed to show ALL safe items, regardless of > 30 days
-                        lists.safe.innerHTML += card;
-                        counts.safe++;
-                        sections.safe.classList.remove('hidden');
-                    }
+                    if (diffDays < 0) { lists.overdue.innerHTML += card; counts.overdue++; sections.overdue.classList.remove('hidden'); }
+                    else if (diffDays <= 14) { lists.warning.innerHTML += card; counts.warning++; sections.warning.classList.remove('hidden'); }
+                    else { lists.safe.innerHTML += card; counts.safe++; sections.safe.classList.remove('hidden'); }
                 });
 
                 document.getElementById('count-overdue').innerText = counts.overdue;
                 document.getElementById('count-warning').innerText = counts.warning;
                 document.getElementById('count-safe').innerText = counts.safe;
                 
-                // Update Debug Counter with Unique count
-                document.getElementById('butler-status').innerText = `Fetched: ${items.length} / Unique: ${Object.keys(uniqueMap).length}`;
-
                 if (counts.overdue + counts.warning + counts.safe === 0) {
                     sections.empty.classList.remove('hidden');
                 }
@@ -746,9 +718,7 @@
             } catch(e) { 
                 console.error("Butler Error:", e);
                 window.showNotification("無法同步管家數據", 'error'); 
-            } finally { 
-                window.showLoading(false); 
-            }
+            } finally { window.showLoading(false); }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
