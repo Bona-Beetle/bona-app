@@ -223,7 +223,8 @@
                 <div class="flex justify-between items-end mb-6 mt-4">
                     <div>
                         <h3 class="text-white text-xl font-bold tracking-wider">換土工作單</h3>
-                        <p class="text-[10px] text-bona-muted uppercase tracking-widest">Maintenance | 60 Days Cycle</p>
+                        <!-- 這裡增加了一個即時診斷文字，幫您確認抓到了幾筆資料 -->
+                        <p class="text-[10px] text-bona-muted uppercase tracking-widest" id="butler-status">Scanning Database...</p>
                     </div>
                     <button onclick="window.refreshTaskButler()" class="bg-bona-card p-3 rounded-xl border border-gray-800 text-bona-gold hover:text-white transition-colors"><i class="fa-solid fa-rotate"></i></button>
                 </div>
@@ -238,8 +239,9 @@
                     <div id="list-warning" class="space-y-3"></div>
                 </div>
 
+                <!-- 這裡移除了 hidden 預設，並確保所有剩餘的都顯示為 Safe -->
                 <div id="section-safe" class="mb-6 hidden">
-                    <h4 class="text-bona-success text-xs font-bold uppercase mb-3 flex items-center"><i class="fa-solid fa-check-circle mr-2"></i> 安全 (Safe - 30D) <span id="count-safe" class="ml-auto bg-bona-success/20 px-2 py-0.5 rounded text-[10px]">0</span></h4>
+                    <h4 class="text-bona-success text-xs font-bold uppercase mb-3 flex items-center"><i class="fa-solid fa-check-circle mr-2"></i> 安全 (Safe) <span id="count-safe" class="ml-auto bg-bona-success/20 px-2 py-0.5 rounded text-[10px]">0</span></h4>
                     <div id="list-safe" class="space-y-3"></div>
                 </div>
 
@@ -581,6 +583,9 @@
                 // Handle different Make.com array structures
                 const items = d.items || d.data || d.body || [];
                 
+                // Debugging Counter for User
+                document.getElementById('butler-status').innerText = `Fetched: ${items.length} records`;
+
                 if(!items || items.length === 0) { 
                     sections.empty.classList.remove('hidden'); 
                     return; 
@@ -653,7 +658,7 @@
                         lists.warning.innerHTML += card;
                         counts.warning++;
                         sections.warning.classList.remove('hidden');
-                    } else if (diffDays <= 30) { // Only show up to 30 days future
+                    } else { // Changed to show ALL safe items, regardless of > 30 days
                         lists.safe.innerHTML += card;
                         counts.safe++;
                         sections.safe.classList.remove('hidden');
@@ -663,6 +668,9 @@
                 document.getElementById('count-overdue').innerText = counts.overdue;
                 document.getElementById('count-warning').innerText = counts.warning;
                 document.getElementById('count-safe').innerText = counts.safe;
+                
+                // Update Debug Counter with Unique count
+                document.getElementById('butler-status').innerText = `Fetched: ${items.length} / Unique: ${Object.keys(uniqueMap).length}`;
 
                 if (counts.overdue + counts.warning + counts.safe === 0) {
                     sections.empty.classList.remove('hidden');
