@@ -122,14 +122,17 @@
                 </div>
             </main>
 
-            <!-- TAB 2: BUTLER (Smart Reminder) -->
+            <!-- TAB 2: BUTLER (Smart Reminder v2.9) -->
             <main id="tab-content-butler" class="app-content hidden">
                 <div class="flex justify-between items-end mb-6">
                     <div>
                         <h3 class="text-bona-gold text-lg font-bold">換土工作單</h3>
-                        <p class="text-[10px] text-gray-500">週期: 60天 | 自動過濾最新數據</p>
+                        <p class="text-[10px] text-gray-500">自動分析最新紀錄 | 週期 60 天</p>
                     </div>
-                    <button onclick="refreshTaskButler()" class="text-xs text-white bg-white/10 px-3 py-1.5 rounded-lg border border-white/20"><i class="fa-solid fa-rotate mr-1"></i>重整</button>
+                    <div class="flex gap-2">
+                        <button onclick="window.exportCensusCSV()" class="text-xs text-white bg-white/10 px-3 py-1.5 rounded-lg border border-white/20"><i class="fa-solid fa-download mr-1"></i>匯出</button>
+                        <button onclick="refreshTaskButler()" class="text-xs text-white bg-white/10 px-3 py-1.5 rounded-lg border border-white/20"><i class="fa-solid fa-rotate mr-1"></i>重整</button>
+                    </div>
                 </div>
                 
                 <!-- 逾期區 -->
@@ -141,19 +144,19 @@
                     <div id="list-overdue" class="space-y-3"></div>
                 </div>
                 
-                <!-- 急迫區 -->
+                <!-- 急迫區 (2周內) -->
                 <div id="section-upcoming" class="list-section hidden">
                     <h4 class="list-header text-bona-gold">
-                        <span>🔥 2 週內 (Upcoming)</span>
+                        <span>🔥 2 週內 (Urgent)</span>
                         <span id="count-upcoming" class="bg-yellow-900/50 px-2 rounded text-[10px]">0</span>
                     </h4>
                     <div id="list-upcoming" class="space-y-3"></div>
                 </div>
                 
-                <!-- 預告區 -->
+                <!-- 預告區 (1個月內) -->
                 <div id="section-future" class="list-section hidden">
                     <h4 class="list-header text-green-500">
-                        <span>📅 1 個月內 (Future)</span>
+                        <span>📅 1 個月內 (Upcoming)</span>
                         <span id="count-future" class="bg-green-900/50 px-2 rounded text-[10px]">0</span>
                     </h4>
                     <div id="list-future" class="space-y-3"></div>
@@ -161,7 +164,7 @@
                 
                 <div id="butler-empty" class="text-center py-12 text-gray-600 text-xs hidden flex flex-col items-center">
                     <i class="fa-solid fa-check-circle text-4xl mb-3 text-gray-700"></i>
-                    太棒了！目前沒有急迫的換土任務
+                    太棒了！未來 30 天內沒有急迫的換土任務
                 </div>
             </main>
 
@@ -236,6 +239,42 @@
             </div>
         </div>
 
+        <!-- NEW ENTRY MODAL -->
+        <div id="modal-new-entry" class="hidden fixed inset-0 z-[250] bg-black/90 flex items-start sm:items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+            <div class="bg-bona-card w-full max-w-sm rounded-xl p-6 border border-gray-700 shadow-2xl relative my-8">
+                <button onclick="window.closeNewEntryModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white p-2 z-50"><i class="fa-solid fa-times text-xl"></i></button>
+                <h3 class="text-xl font-bold text-white mb-6 tracking-wide border-b border-gray-800 pb-4">新蟲 <span class="text-bona-gold">錄入</span></h3>
+                <form id="form-new-entry" onsubmit="window.handleNewEntrySubmit(event)" class="space-y-6">
+                    <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 space-y-4">
+                        <label class="block text-xs text-bona-gold uppercase font-bold tracking-widest text-center mb-2">設定物種代碼 (Prefix)</label>
+                        <input type="text" id="id-prefix" list="species-options" class="w-full bg-black border-2 border-bona-gold/50 rounded-xl text-white text-4xl p-4 outline-none text-center font-bold uppercase tracking-widest h-20 focus:border-bona-gold transition-colors" placeholder="D" value="D" oninput="this.value = this.value.toUpperCase(); window.updateIDPreview()">
+                        <datalist id="species-options"></datalist>
+                        <div class="text-center"><button type="button" onclick="document.getElementById('id-details').classList.toggle('hidden')" class="text-xs text-gray-500 underline hover:text-white">顯示/隱藏 詳細編碼設定</button></div>
+                        <div id="id-details" class="hidden grid grid-cols-3 gap-3 pt-2 border-t border-gray-800">
+                            <div><label class="block text-[10px] text-gray-500 mb-1 text-center">年份</label><select id="id-year" class="w-full bg-black border border-gray-600 rounded-lg text-white p-2 text-center" onchange="window.updateIDPreview()"><option value="24">24</option><option value="25">25</option><option value="26">26</option></select></div>
+                            <div><label class="block text-[10px] text-gray-500 mb-1 text-center">批次</label><input type="number" id="id-batch" class="w-full bg-black border border-gray-600 rounded-lg text-white p-2 text-center" value="01" oninput="window.updateIDPreview()"></div>
+                            <div><label class="block text-[10px] text-gray-500 mb-1 text-center">序號</label><input type="number" id="id-seq" class="w-full bg-black border border-gray-600 rounded-lg text-white p-2 text-center" value="001" oninput="window.updateIDPreview()"></div>
+                        </div>
+                        <div class="text-center font-mono text-xl font-bold text-white tracking-widest bg-black/50 py-2 rounded mt-2" id="id-preview">D-24-01-001</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-5"><div><label class="block text-xs text-gray-400 uppercase mb-2 font-bold">孵化日</label><input type="date" id="new-hatch-date" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base focus:border-bona-gold outline-none h-12"></div><div><label class="block text-xs text-gray-400 uppercase mb-2 font-bold">量測日期</label><input type="date" id="new-check-date" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base focus:border-bona-gold outline-none h-12"></div></div>
+                    <div class="space-y-4">
+                        <div><label class="block text-xs text-gray-400 uppercase mb-2 font-bold">累代</label><select id="new-gen" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base outline-none h-12"><option value="CBF1">CBF1</option><option value="CBF2">CBF2</option><option value="CBF3">CBF3</option><option value="CBF4">CBF4</option><option value="CBF5">CBF5</option><option value="WF1">WF1</option><option value="WF2">WF2</option><option value="WF3">WF3</option><option value="WD">WD (野生)</option><option value="F1">F1</option><option value="F2">F2</option><option value="F3">F3</option><option value="CB">CB (飼育品)</option><option value="Unknown">Unknown (不詳)</option></select></div>
+                        <div class="grid grid-cols-2 gap-5"><div class="relative"><label class="block text-xs text-gray-500 uppercase mb-1">父代 (Sire)</label><input type="text" id="new-sire" class="w-full bg-black border border-gray-700 rounded-lg p-3 pr-10 text-white text-base outline-none h-12" placeholder="ID/尺寸"><button type="button" onclick="window.openScanner('fill', 'new-sire')" class="absolute right-2 bottom-2 text-bona-gold p-2"><i class="fa-solid fa-qrcode"></i></button></div><div class="relative"><label class="block text-xs text-gray-500 uppercase mb-1">母代 (Dam)</label><input type="text" id="new-dam" class="w-full bg-black border border-gray-700 rounded-lg p-3 pr-10 text-white text-base outline-none h-12" placeholder="ID/尺寸"><button type="button" onclick="window.openScanner('fill', 'new-dam')" class="absolute right-2 bottom-2 text-bona-gold p-2"><i class="fa-solid fa-qrcode"></i></button></div></div>
+                    </div>
+                    <div><label class="block text-xs text-gray-400 uppercase mb-2 font-bold">初始體重 (g)</label><input type="number" step="0.1" id="new-weight" class="w-full bg-black border border-gray-700 rounded-lg p-4 text-white text-xl focus:border-bona-gold outline-none" required></div>
+                    <div class="space-y-4 pt-2 border-t border-gray-800">
+                        <div class="grid grid-cols-2 gap-5"><div><label class="block text-xs text-gray-500 uppercase mb-1">容器種類</label><select id="new-box-type" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base outline-none h-12"><option value="布丁杯">布丁杯</option><option value="塑膠圓筒">塑膠圓筒</option><option value="塑膠方盒">塑膠方盒</option><option value="日規雙孔罐">日規雙孔罐</option><option value="日規單孔罐">日規單孔罐</option><option value="貝殼箱">貝殼箱</option><option value="祈星方盒">祈星方盒</option><option value="整理箱">整理箱</option><option value="其他">其他</option></select></div><div><label class="block text-xs text-gray-500 uppercase mb-1">容器容量</label><select id="new-box-vol" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base outline-none h-12"><option value="100-150ml">100-150ml</option><option value="500ml">500ml</option><option value="700-800ml">700-800ml</option><option value="1000ml">1000ml</option><option value="1400-1500ml">1400-1500ml</option><option value="2200-2300ml">2200-2300ml</option><option value="3200-3500ml">3200-3500ml</option><option value="4L">4L</option><option value="6L">6L</option><option value="10L">10L</option></select></div></div>
+                    </div>
+                    <div class="space-y-4"><div><label class="block text-xs text-gray-500 uppercase mb-1">主食材 (Main)</label><select id="new-sub-main" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base outline-none h-12"><option value="BONA木屑">BONA木屑</option><option value="金蟲銀蟲木屑">金蟲銀蟲木屑</option><option value="AKD木屑">AKD木屑</option><option value="BEVO木屑">BEVO木屑</option><option value="P2木屑">P2木屑</option><option value="金剛木屑">金剛木屑</option><option value="白羊木屑">白羊木屑</option><option value="蟲心木屑">蟲心木屑</option><option value="蟲植木屑">蟲植木屑</option><option value="自發木屑">自發木屑</option><option value="好蟲多木屑">好蟲多木屑</option><option value="星空木屑">星空木屑</option><option value="小糕菌">小糕菌</option><option value="雲芝菌">雲芝菌</option><option value="育成土">育成土</option><option value="育成木屑">育成木屑</option><option value="重壓菌">重壓菌</option><option value="袖珍菌">袖珍菌</option><option value="廢木屑">廢木屑</option><option value="其他">其他</option></select></div>
+                    <div class="grid grid-cols-2 gap-5"><div><label class="block text-xs text-gray-500 uppercase mb-1">副食材</label><select id="new-sub-sec" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base outline-none h-12"><option value="Keep">維持不變</option><option value="無">無</option><option value="BONA木屑">BONA木屑</option><option value="金蟲銀蟲木屑">金蟲銀蟲木屑</option><option value="AKD木屑">AKD木屑</option><option value="BEVO木屑">BEVO木屑</option><option value="P2木屑">P2木屑</option><option value="金剛木屑">金剛木屑</option><option value="白羊木屑">白羊木屑</option><option value="蟲心木屑">蟲心木屑</option><option value="蟲植木屑">蟲植木屑</option><option value="自發木屑">自發木屑</option><option value="好蟲多木屑">好蟲多木屑</option><option value="星空木屑">星空木屑</option><option value="小糕菌">小糕菌</option><option value="雲芝菌">雲芝菌</option><option value="育成土">育成土</option><option value="育成木屑">育成木屑</option><option value="重壓菌">重壓菌</option><option value="袖珍菌">袖珍菌</option><option value="廢木屑">廢木屑</option><option value="其他">其他</option></select></div><div><label class="block text-xs text-gray-500 uppercase mb-1">添加劑</label><select id="new-booster" class="w-full bg-black border border-gray-700 rounded-lg p-3 text-white text-base outline-none h-12"><option value="無添加">無添加</option><option value="10g/10L">10g/10L</option><option value="20g/10L">20g/10L</option><option value="極限組">極限組</option></select></div></div></div>
+                    <button type="submit" class="w-full gold-gradient text-black font-bold py-4 rounded-lg mt-4 uppercase tracking-widest shadow-lg hover:brightness-110 text-lg">確認錄入系統</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-upgrade" class="hidden fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md"><div class="w-full max-w-sm text-center relative"><i class="fa-solid fa-lock text-5xl text-bona-gold mb-6 animate-bounce"></i><h2 class="text-2xl font-bold text-white mb-2 tracking-widest">QUOTA EXCEEDED</h2><p class="text-gray-400 mb-8 text-sm leading-relaxed">您的飼育紀錄額度已達上限。<br>請聯繫管理員升級至 PRO+ 方案以解鎖更多空間。</p><button onclick="document.getElementById('modal-upgrade').classList.add('hidden')" class="border border-gray-600 text-gray-400 px-6 py-3 rounded-lg hover:bg-gray-900 transition-colors uppercase text-xs tracking-widest">Close</button></div></div>
+
     </div>
 
     <script>
@@ -243,8 +282,19 @@
         const WEBHOOK_URL = "https://hook.us2.make.com/dft05gnm8d1nnhq1uw9owyy5rbon904w";
         let currentUser = localStorage.getItem('user_key');
         let currentDetail = {};
+        let knownBeetlesCache = [];
         
-        // --- CORE FUNCTIONS ---
+        // --- CORE FUNCTIONS (SAFE HELPERS) ---
+        function safeSetVal(id, val) {
+            const el = document.getElementById(id);
+            if(el) el.value = val;
+        }
+
+        function safeGetVal(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        }
+
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             const target = document.getElementById(viewId);
@@ -273,18 +323,9 @@
             setTimeout(() => area.innerHTML = '', 3000);
         }
 
-        function clean(val) {
-            if(val === null || val === undefined) return '--';
-            if(typeof val === 'object') {
-                if(val.id && !val.date_check) return val.id; // Fallback
-                return '--'; 
-            }
-            return val;
-        }
-
         // --- AUTH ---
         async function handleLogin() {
-            const key = document.getElementById('login-license').value.trim();
+            const key = safeGetVal('login-license').trim();
             if(!key) return showNotif('請輸入授權碼');
             
             showLoading(true);
@@ -317,15 +358,20 @@
             location.reload();
         }
 
-        // --- BUTLER LOGIC (Smart Sorting) ---
+        // --- BUTLER LOGIC (Smart Deduplication & Sorting) ---
         async function refreshTaskButler() {
-            showLoading(true);
-            // Reset UI
-            ['list-overdue', 'list-upcoming', 'list-future'].forEach(id => document.getElementById(id).innerHTML = '');
+            const listOverdue = document.getElementById('list-overdue');
+            const listUpcoming = document.getElementById('list-upcoming');
+            const listFuture = document.getElementById('list-future');
+            
+            listOverdue.innerHTML = '';
+            listUpcoming.innerHTML = '';
+            listFuture.innerHTML = '';
             ['section-overdue', 'section-upcoming', 'section-future', 'butler-empty'].forEach(id => document.getElementById(id).classList.add('hidden'));
 
+            showLoading(true);
+            
             try {
-                // Fetch ALL raw data (Flow log)
                 const res = await fetch(WEBHOOK_URL, {
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'},
@@ -341,10 +387,9 @@
                 if(rawItems.length === 0) {
                     document.getElementById('butler-empty').classList.remove('hidden');
                 } else {
-                    // 1. Deduplicate: Find latest record for each ID
                     const uniqueMap = {};
+                    
                     rawItems.forEach(item => {
-                        // Compatible Key Mapping
                         const id = item.id || item.title || item.ID || 'Unknown';
                         const dateStr = item.date || item.date_check || item.Date_Check;
                         const date = new Date(dateStr);
@@ -354,6 +399,7 @@
                                 uniqueMap[id] = {
                                     id: id,
                                     rawDate: date,
+                                    rawDateStr: dateStr.split('T')[0],
                                     weight: item.weight || item.Weight || '--',
                                     box: `${item.box_type || item.Box_Type || '--'} ${item.box_vol || item.Box_Vol || ''}`,
                                     sub: `${item.sub_main || item.Sub_Main || '--'}`,
@@ -364,32 +410,39 @@
                         }
                     });
 
-                    // 2. Sort & Categorize
                     const today = new Date();
-                    const CYCLE = 60; // Days
-                    let countOver = 0, countUp = 0, countFut = 0;
-
-                    Object.values(uniqueMap).sort((a, b) => a.rawDate - b.rawDate).forEach(bug => {
-                        const nextDate = new Date(bug.rawDate);
-                        nextDate.setDate(nextDate.getDate() + CYCLE);
+                    const CYCLE_DAYS = 60; 
+                    
+                    const processedList = Object.values(uniqueMap).map(bug => {
+                        const lastDate = bug.rawDate;
+                        const nextDate = new Date(lastDate);
+                        nextDate.setDate(nextDate.getDate() + CYCLE_DAYS);
+                        
                         const diffTime = nextDate - today;
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         
-                        const html = createCard(bug, diffDays, nextDate.toISOString().split('T')[0]);
+                        return { ...bug, diffDays, nextDateStr: nextDate.toISOString().split('T')[0] };
+                    });
 
-                        if(diffDays < 0) {
-                            document.getElementById('list-overdue').innerHTML += html;
+                    processedList.sort((a, b) => a.diffDays - b.diffDays);
+                    
+                    let countOver = 0, countUp = 0, countFut = 0;
+
+                    processedList.forEach(bug => {
+                        const html = createCard(bug);
+
+                        if(bug.diffDays < 0) {
+                            listOverdue.innerHTML += html;
                             countOver++;
-                        } else if(diffDays <= 14) {
-                            document.getElementById('list-upcoming').innerHTML += html;
+                        } else if(bug.diffDays <= 14) {
+                            listUpcoming.innerHTML += html;
                             countUp++;
-                        } else if(diffDays <= 30) {
-                            document.getElementById('list-future').innerHTML += html;
+                        } else if(bug.diffDays <= 30) {
+                            listFuture.innerHTML += html;
                             countFut++;
                         }
                     });
 
-                    // 3. Update Visibility
                     if(countOver > 0) {
                         document.getElementById('section-overdue').classList.remove('hidden');
                         document.getElementById('count-overdue').innerText = countOver;
@@ -403,9 +456,11 @@
                         document.getElementById('count-future').innerText = countFut;
                     }
                     if(countOver + countUp + countFut === 0) {
-                        document.getElementById('butler-empty').classList.remove('hidden');
-                        document.getElementById('butler-empty').innerText = "太棒了！未來 30 天內沒有換土任務";
+                         document.getElementById('butler-empty').classList.remove('hidden');
+                         document.getElementById('butler-empty').innerText = "太棒了！未來 30 天內沒有換土任務";
                     }
+                    
+                    window.lastCensusData = processedList;
                 }
             } catch(e) {
                 console.error(e);
@@ -415,16 +470,16 @@
             }
         }
 
-        function createCard(bug, days, nextDateStr) {
+        function createCard(bug) {
             let badgeClass = 'bg-gray-700 text-gray-300';
-            let label = `剩 ${days} 天`;
+            let label = `剩 ${bug.diffDays} 天`;
             let borderClass = 'border-gray-700';
 
-            if(days < 0) {
+            if(bug.diffDays < 0) {
                 badgeClass = 'bg-red-900 text-red-200';
-                label = `逾期 ${Math.abs(days)} 天`;
+                label = `逾期 ${Math.abs(bug.diffDays)} 天`;
                 borderClass = 'border-red-900';
-            } else if(days <= 14) {
+            } else if(bug.diffDays <= 14) {
                 badgeClass = 'bg-yellow-900 text-yellow-200';
                 borderClass = 'border-yellow-900';
             } else {
@@ -445,11 +500,42 @@
                         <div class="col-span-2 text-bona-gold">${bug.boost !== '--' ? '★ '+bug.boost : ''}</div>
                     </div>
                     <div class="flex justify-between items-center border-t border-gray-700 pt-2 mt-2">
-                        <span class="text-[10px] text-gray-600">預計: ${nextDateStr}</span>
+                        <span class="text-[10px] text-gray-600">預計: ${bug.nextDateStr}</span>
                         <button onclick="fetchDetail('${bug.id}')" class="text-[10px] border border-bona-gold text-bona-gold px-3 py-1 rounded hover:bg-bona-gold hover:text-black">更新</button>
                     </div>
                 </div>
             `;
+        }
+        
+        window.exportCensusCSV = function() {
+            if(!window.lastCensusData || window.lastCensusData.length === 0) {
+                 return showNotif('無資料可匯出');
+            }
+            const headers = ["ID", "Last Check", "Next Change", "Weight", "Container", "Substrate", "Additive", "Days Left"];
+            const csvRows = [headers.join(",")];
+
+            window.lastCensusData.forEach(item => {
+                const row = [
+                    item.id,
+                    item.rawDateStr,
+                    item.nextDateStr,
+                    item.weight,
+                    item.box,
+                    `${item.sub} + ${item.sub2}`,
+                    item.boost,
+                    item.diffDays
+                ];
+                csvRows.push(row.join(","));
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Bona_Butler_List_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // --- FETCH SINGLE DETAIL ---
@@ -465,7 +551,6 @@
                 const text = await res.text();
                 let data = JSON.parse(text);
                 
-                // Parse items array logic same as butler but strict for 1
                 let record = {};
                 let history = [];
                 
@@ -473,14 +558,12 @@
                 else if(data.data) history = data.data;
                 else if(Array.isArray(data)) history = data;
                 
-                // Sort Descending
                 history.sort((a,b) => new Date(b.date || b.date_check) - new Date(a.date || a.date_check));
                 
                 if(history.length > 0) {
-                    record = history[0]; // Latest
-                    currentDetail = record; // Store for update
+                    record = history[0]; 
+                    currentDetail = record; 
                     
-                    // Render Detail View
                     document.getElementById('detail-id').innerText = record.id || record.title || id;
                     document.getElementById('d-weight').innerText = record.weight || '--';
                     document.getElementById('d-date').innerText = (record.date || record.date_check || '').split('T')[0];
@@ -489,8 +572,7 @@
                     document.getElementById('d-box').innerText = `${record.box_type||''} ${record.box_vol||''}`;
                     document.getElementById('d-boost').innerText = record.booster || '--';
                     
-                    // Setup Update Modal hidden fields
-                    document.getElementById('update-id').value = id;
+                    safeSetVal('update-id', id);
 
                     switchView('view-detail');
                 } else {
@@ -507,7 +589,7 @@
         // --- UPDATE LOGIC ---
         function openUpdateModal() {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('update-date').value = today;
+            safeSetVal('update-date', today);
             document.getElementById('modal-update').classList.remove('hidden');
             document.getElementById('modal-update').classList.add('flex');
         }
@@ -519,16 +601,127 @@
             });
         }
         
+        // NEW ENTRY MODAL: REMOVED STATUS & GENDER UI
+        function showNewEntryForm() { 
+            if (quotaInfo.used >= quotaInfo.max) { 
+                document.getElementById('modal-upgrade').classList.remove('hidden'); 
+                document.getElementById('modal-upgrade').classList.add('flex');
+                return; 
+            } 
+            document.getElementById('form-new-entry').reset(); 
+            const today = new Date().toISOString().split('T')[0]; 
+            safeSetVal('new-check-date', today); 
+            safeSetVal('new-hatch-date', today); 
+            
+            // Auto-fill from memory
+            const lastSire = localStorage.getItem('last_sire'); 
+            const lastDam = localStorage.getItem('last_dam'); 
+            if(lastSire) safeSetVal('new-sire', lastSire); 
+            if(lastDam) safeSetVal('new-dam', lastDam); 
+
+            window.updateIDPreview(); 
+            const lastSeq = localStorage.getItem('last_seq'); 
+            if (lastSeq) { 
+                 const nextSeq = parseInt(lastSeq) + 1; 
+                 safeSetVal('id-seq', nextSeq.toString().padStart(3, '0')); 
+                 window.updateIDPreview(); 
+            } 
+            
+            document.getElementById('modal-new-entry').classList.remove('hidden');
+            document.getElementById('modal-new-entry').classList.add('flex');
+        }
+
         // Mock functions for other buttons to prevent crash
         function openScanner() { showNotif('掃描功能 (Placeholder)'); }
-        function showNewEntryForm() { showNotif('錄入功能 (Placeholder)'); }
-        function handleManualSearch() { fetchDetail(document.getElementById('search-id').value.toUpperCase()); }
+        function handleManualSearch() { fetchDetail(safeGetVal('search-id').toUpperCase()); }
         function showQR() { showNotif('QR Code (Placeholder)'); }
         function closeDetail() { switchView('view-main'); }
         async function submitUpdate() { showNotif('更新功能 (Placeholder)'); closeModals(); }
 
+        // --- NEW ENTRY SUBMIT: ADD DEFAULT STATUS/GENDER ---
+        window.handleNewEntrySubmit = async function(e) {
+            e.preventDefault();
+            try {
+                if (!currentUser) throw new Error('請先登入');
+                const targetUser = currentUser;
+                closeModals();
+                showLoading(true);
+                
+                const fullId = window.updateIDPreview();
+                
+                localStorage.setItem('last_prefix', safeGetVal('id-prefix'));
+                
+                const newRecord = {
+                    id: fullId, 
+                    userId: targetUser,
+                    date_check: safeGetVal('new-check-date'),
+                    date_hatch: safeGetVal('new-hatch-date'),
+                    generation: safeGetVal('new-gen'),
+                    
+                    // --- HARDCODED DEFAULTS ---
+                    gender: 'Unknown',
+                    status: 'Larva',
+                    // --------------------------
+
+                    sire_size: safeGetVal('new-sire') || 'N/A',
+                    dam_size: safeGetVal('new-dam') || 'N/A',
+                    weight: parseFloat(safeGetVal('new-weight') || 0),
+                    box_type: safeGetVal('new-box-type'),
+                    box_vol: safeGetVal('new-box-vol'),
+                    sub_main: safeGetVal('new-sub-main'),
+                    sub_sec: safeGetVal('new-sub-sec'),
+                    booster: safeGetVal('new-booster')
+                };
+
+                const payload = { type: 'growth', mode: 'new', ...newRecord };
+
+                const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                
+                if (response.ok) { 
+                    showNotif(`錄入成功: ${fullId}`); 
+                    // Update Quota, ID sequence, etc.
+                } else throw new Error(`HTTP ${response.status}`);
+            } catch (error) { console.error(error); showNotif(`錄入錯誤: ${error.message}`); } finally { showLoading(false); }
+        }
+
+        // --- ID PREVIEW HELPER ---
+        window.updateIDPreview = function() { 
+            const prefix = safeGetVal('id-prefix') || 'D'; 
+            const year = safeGetVal('id-year'); 
+            let batch = safeGetVal('id-batch') || '00'; 
+            let seq = safeGetVal('id-seq') || '000'; 
+            if (batch.length < 2) batch = '0' + batch; 
+            if (seq.length < 3) seq = ('000' + seq).slice(-3); 
+            const fullId = `${prefix}-${year}-${batch}-${seq}`; 
+            const el = document.getElementById('id-preview');
+            if(el) el.innerText = fullId; 
+            return fullId; 
+        }
+
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            safeSetVal('new-check-date', today);
+            safeSetVal('new-hatch-date', today);
+
+            const lastPrefix = localStorage.getItem('last_prefix');
+            if(lastPrefix) safeSetVal('id-prefix', lastPrefix);
+            
+            // Datalist setup
+            const datalist = document.getElementById('species-options');
+            const SPECIES_LIST = [
+                { code: "D", name: "D.h.h (長戟大兜)" },
+                // ... others
+            ];
+            if (datalist) {
+                SPECIES_LIST.forEach(species => {
+                    const option = document.createElement('option');
+                    option.value = species.code;
+                    option.label = species.name; 
+                    datalist.appendChild(option);
+                });
+            }
+
             if(currentUser) {
                 switchView('view-main');
                 switchTab('home');
