@@ -15,7 +15,7 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-dark); color: #e5e7eb; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .glass-card { background: rgba(26, 26, 26, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .btn-primary { background: var(--accent-gold); color: black; font-weight: bold; }
-        input, select { background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 12px; padding: 14px; width: 100%; outline: none; transition: border 0.3s; }
+        input, select { background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 12px; padding: 14px; width: 100%; outline: none; }
         input:focus { border-color: var(--accent-gold); }
         #loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -30,13 +30,12 @@
 </head>
 <body class="min-h-screen">
 
-    <!-- 載入動畫 -->
     <div id="loading-overlay">
         <div class="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin"></div>
         <p class="text-gold font-bold text-xs tracking-widest" id="loading-text">CONNECTING...</p>
     </div>
 
-    <!-- 1. 登入介面 (簡潔版) -->
+    <!-- 1. 登入介面 (極簡版) -->
     <div id="login-overlay" class="fixed inset-0 bg-[#0f0f0f] z-[999] flex flex-col items-center justify-center p-8">
         <img src="logo.png" alt="Bona Logo" onerror="this.src='https://via.placeholder.com/120/d4af37/000000?text=B'" class="w-24 h-24 mb-6 rounded-3xl shadow-2xl">
         <h1 class="text-3xl font-bold mb-12 tracking-[0.2em] text-white">BONA <span class="text-gold">PRO</span></h1>
@@ -47,7 +46,7 @@
         </div>
     </div>
 
-    <!-- 2. Header (品牌呈現區) -->
+    <!-- 2. Header (品牌呈現) -->
     <header id="main-header" class="p-4 sticky top-0 z-50 glass-card flex justify-between items-center hidden">
         <div class="flex items-center gap-3">
             <img id="breeder-logo" src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/40/d4af37/000000?text=Logo'" class="w-10 h-10 rounded-xl border border-gray-800 object-cover">
@@ -67,7 +66,6 @@
 
     <!-- 3. 主內容區 -->
     <main id="main-content" class="p-4 safe-area-bottom hidden space-y-6">
-        <!-- 功能切換標籤 -->
         <nav class="flex justify-around border-b border-gray-900 text-[11px] overflow-x-auto whitespace-nowrap scrollbar-hide">
             <button onclick="switchView('dashboard')" id="tab-dashboard" class="px-3 py-3 tab-active">儀表板</button>
             <button onclick="switchView('records')" id="tab-records" class="px-3 py-3 text-gray-500">快速紀錄</button>
@@ -75,7 +73,6 @@
             <button onclick="switchView('growth')" id="tab-growth" class="px-3 py-3 text-gray-500 pro-only-tab">數據分析</button>
         </nav>
 
-        <!-- View 1: 儀表板 -->
         <section id="view-dashboard" class="space-y-4">
             <div class="grid grid-cols-3 gap-3">
                 <div class="glass-card p-4 rounded-2xl text-center border-t border-white/5">
@@ -92,73 +89,30 @@
                 </div>
             </div>
             
-            <!-- 管家提醒 -->
             <div class="glass-card p-5 rounded-3xl border-l-4 border-gold">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xs font-bold tracking-widest flex items-center gap-2 text-white">
-                        <i class="fa-solid fa-wand-magic-sparkles text-gold"></i> 智能管家提醒
-                    </h3>
-                    <button onclick="syncFromNotion()" class="text-[9px] bg-gray-800 text-gray-300 px-3 py-1 rounded-full active:scale-90 transition-all">重新同步</button>
+                    <h3 class="text-xs font-bold tracking-widest flex items-center gap-2 text-gold uppercase">Butler Notice</h3>
+                    <button onclick="syncFromNotion()" class="text-[9px] bg-gray-800 text-gray-300 px-3 py-1 rounded-full active:scale-90 transition-all">REFRESH</button>
                 </div>
-                <div id="butler-list" class="space-y-3">
-                    <p class="text-center text-[10px] text-gray-600 py-6 italic">正在從雲端獲取最新動態...</p>
-                </div>
+                <div id="butler-list" class="space-y-3 text-center py-4 text-gray-600 italic text-[10px]">載入最新通知中...</div>
             </div>
         </section>
 
-        <!-- View 2: 快速紀錄 -->
         <section id="view-records" class="hidden space-y-4">
             <div class="glass-card p-6 rounded-3xl space-y-6">
-                <h2 class="font-bold text-white tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square text-gold"></i> 快速飼育日誌
-                </h2>
+                <h2 class="font-bold text-white tracking-widest">快速紀錄</h2>
                 <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] text-gray-500 mb-1 ml-1 uppercase">個體 ID</label>
-                        <select id="specimen-id-select"></select>
-                    </div>
+                    <select id="specimen-id-select"></select>
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-[10px] text-gray-500 mb-1 ml-1 uppercase">生命狀態</label>
-                            <select id="mode-select-log"></select>
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-gray-500 mb-1 ml-1 uppercase">目前重量 (g)</label>
-                            <input type="number" id="log-weight" step="0.1" placeholder="0.0">
-                        </div>
+                        <select id="mode-select-log"></select>
+                        <input type="number" id="log-weight" step="0.1" placeholder="重量 (g)">
                     </div>
-                    <div class="p-4 bg-black/50 rounded-2xl border border-gray-800 space-y-4">
-                        <p class="text-[9px] text-gold font-bold tracking-widest border-b border-gray-800 pb-2 mb-2 uppercase">規格鎖定</p>
-                        <div class="grid grid-cols-2 gap-3">
-                            <select id="sub-main-select"></select>
-                            <select id="box-type-select"></select>
-                        </div>
-                    </div>
-                    <button onclick="submitLog()" class="btn-primary w-full py-4 rounded-2xl active:scale-95 transition-all text-lg shadow-gold">提交至雲端</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- View 3: 批量入庫 -->
-        <section id="view-onboarding" class="hidden space-y-4">
-            <div class="glass-card p-6 rounded-3xl border border-gold/10">
-                <h2 class="font-bold text-gold tracking-widest flex items-center gap-2 mb-6 uppercase">批量入庫管理</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] text-gray-500 mb-1 uppercase">歸屬批次</label>
-                        <select id="batch-select"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-500 mb-1 uppercase">生成數量</label>
-                        <input type="number" id="input-quantity" value="1" min="1" class="text-center font-bold text-xl">
-                    </div>
-                    <button onclick="handleOnboarding()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">啟動智能編碼入庫</button>
+                    <button onclick="submitLog()" class="btn-primary w-full py-4 rounded-2xl text-lg">提交</button>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- 底部導覽 -->
     <footer id="main-footer" class="fixed bottom-0 left-0 right-0 glass-card p-4 border-t border-white/5 flex justify-around items-center hidden z-[100]">
         <button onclick="switchView('dashboard')" id="btn-dashboard" class="flex flex-col items-center gap-1 text-gold"><i class="fa-solid fa-house"></i><span class="text-[8px]">儀表板</span></button>
         <button onclick="switchView('records')" id="btn-records" class="flex flex-col items-center gap-1 text-gray-500"><i class="fa-solid fa-plus-circle"></i><span class="text-[8px]">紀錄</span></button>
@@ -167,23 +121,12 @@
     </footer>
 
     <script>
-        // --- 核心配置 ---
         const WEBHOOK_URL = "https://hook.us2.make.com/3t09tt0d685yi05vfbfjqha01l4mg4pu";
         const API_KEY = "BonaPro-Safe-19790514";
 
-        // --- 靜態選單 ---
-        const DICT = {
-            modes: ["卵", "L1", "L2", "L3前期", "L3中期", "L3後期", "前蛹", "化蛹", "成功羽化", "蟄伏中", "售出", "死亡"],
-            substrates: ["BONA木屑", "AKD木屑", "BEVO木屑", "P2木屑", "雲芝菌", "育成土", "其他"],
-            boxTypes: ["日規雙孔罐", "布丁杯", "塑膠方盒", "貝殼箱", "整理箱", "其他"]
-        };
-
-        // --- 核心通訊邏輯 (最穩定模式) ---
         async function callCloud(action, payload) {
             const license = localStorage.getItem('license');
             const userId = localStorage.getItem('userId');
-            
-            // 將 API Key 放在 Body 以確保最大的瀏覽器相容性 (避開 CORS 阻擋)
             const body = { action, license, userId, apiKey: API_KEY, ...payload };
 
             try {
@@ -192,19 +135,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const data = await response.json();
-                console.log(`[Cloud Response: ${action}]`, data);
-                return data;
+                if (!response.ok) return null;
+                return await response.json();
             } catch (err) {
-                console.error(`[Connection Error: ${action}]`, err);
+                console.error("[Network Error]", err);
                 return null;
             }
         }
 
-        // --- 登入驗證 ---
         async function handleLogin() {
             const license = document.getElementById('license-input').value.trim();
             if (!license) return alert("請輸入授權碼");
@@ -214,60 +152,46 @@
             toggleLoading(false);
 
             if (result && (result.success === true || result.success === "true")) {
-                // 儲存身分
                 localStorage.setItem('license', license);
                 localStorage.setItem('userId', result.userId || "UNKNOWN");
                 localStorage.setItem('planType', result.planType || "LITE");
 
-                // UI 注入
-                document.getElementById('display-breeder-name').innerText = result.breederName || "Bona Beetle User";
+                document.getElementById('display-breeder-name').innerText = result.breederName || "User";
                 document.getElementById('display-user-id').innerText = "ID: " + (result.userId || "----");
                 document.getElementById('display-plan-label').innerText = result.planType === 'PRO' ? "👑 PRO VERSION" : "LITE VERSION";
                 if(result.logoUrl) document.getElementById('breeder-logo').src = result.logoUrl;
                 if(result.planType === 'PRO') document.body.classList.add('is-pro');
 
-                // 進入介面
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('main-header').classList.remove('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 document.getElementById('main-footer').classList.remove('hidden');
 
-                // 初始化選單並同步
                 initUI();
                 syncFromNotion();
             } else {
-                alert("❌ 驗證失敗：授權碼無效或連線異常");
+                alert("驗證失敗：授權碼錯誤或雲端未啟動");
             }
         }
 
-        // --- 數據同步 ---
         async function syncFromNotion() {
-            toggleLoading(true, "同步雲端資產...");
+            toggleLoading(true, "數據同步中...");
             const result = await callCloud("SYNC_DATA", {});
             toggleLoading(false);
 
             if (result && (result.success === true || result.success === "true")) {
-                // 更新統計
                 if (result.stats) {
                     document.getElementById('stat-pending').innerText = result.stats.pending || 0;
-                    document.getElementById('stat-elite').innerText = result.stats.elite || 0;
                     document.getElementById('stat-total').innerText = result.stats.total || 0;
                 }
-                // 更新選單
-                if (result.batches) fillSelect('batch-select', result.batches, "選取批次");
-                if (result.specimens) fillSelect('specimen-id-select', result.specimens, "搜尋個體 ID");
-                
-                // 更新提醒
-                const list = document.getElementById('butler-list');
-                if (result.alerts && result.alerts.length > 0) {
-                    list.innerHTML = result.alerts.map(a => `
-                        <div class="p-4 bg-red-500/10 rounded-2xl flex justify-between items-center border border-red-500/20">
-                            <span class="text-xs font-medium text-gray-200">${a.text}</span>
-                            <button onclick="switchView('records')" class="text-[10px] bg-red-600 text-white px-3 py-1.5 rounded-xl">前往處理</button>
-                        </div>
-                    `).join('');
-                } else {
-                    list.innerHTML = '<p class="text-center text-[10px] text-gray-600 py-6 italic">目前沒有緊急提醒</p>';
+                const select = document.getElementById('specimen-id-select');
+                if (result.specimens && select) {
+                    select.innerHTML = '<option value="">-- 請選擇個體 --</option>';
+                    result.specimens.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.value; opt.innerText = s.text;
+                        select.appendChild(opt);
+                    });
                 }
                 document.getElementById('status-dot').className = "status-dot status-online";
             } else {
@@ -275,29 +199,6 @@
             }
         }
 
-        // --- 提交紀錄 ---
-        async function submitLog() {
-            const sid = document.getElementById('specimen-id-select').value;
-            if (!sid) return alert("請先選擇個體編號");
-
-            toggleLoading(true, "日誌同步中...");
-            const result = await callCloud("SUBMIT_LOG", {
-                specimenId: sid,
-                mode: document.getElementById('mode-select-log').value,
-                weight: document.getElementById('log-weight').value,
-                subMain: document.getElementById('sub-main-select').value,
-                boxType: document.getElementById('box-type-select').value
-            });
-            toggleLoading(false);
-
-            if (result && (result.success === true || result.success === "true")) {
-                alert("✅ 紀錄同步成功！");
-                document.getElementById('log-weight').value = "";
-                syncFromNotion();
-            }
-        }
-
-        // --- 輔助工具 ---
         function fillSelect(id, data, placeholder) {
             const el = document.getElementById(id);
             if (!el) return;
@@ -311,27 +212,15 @@
         }
 
         function initUI() {
-            fillSelect('mode-select-log', DICT.modes, "生命階段");
-            fillSelect('sub-main-select', DICT.substrates, "耗材規格");
-            fillSelect('box-type-select', DICT.boxTypes, "容器種類");
+            fillSelect('mode-select-log', ["卵", "L1", "L2", "L3", "化蛹", "羽化", "死亡"], "生命階段");
             if (window.lucide) lucide.createIcons();
         }
 
         function switchView(vid) {
             document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
             document.getElementById('view-' + vid).classList.remove('hidden');
-            
-            document.querySelectorAll('footer button').forEach(b => {
-                b.classList.remove('text-gold'); b.classList.add('text-gray-500');
-            });
-            document.getElementById('btn-' + vid).classList.add('text-gold');
-            document.getElementById('btn-' + vid).classList.remove('text-gray-500');
-
-            document.querySelectorAll('nav button').forEach(b => {
-                b.classList.remove('tab-active', 'text-gray-500');
-                if (b.id === 'tab-' + vid) b.classList.add('tab-active');
-                else b.classList.add('text-gray-500');
-            });
+            document.querySelectorAll('footer button').forEach(b => b.classList.replace('text-gold', 'text-gray-500'));
+            document.getElementById('btn-' + vid).classList.replace('text-gray-500', 'text-gold');
         }
 
         function toggleLoading(show, text) {
@@ -342,10 +231,7 @@
 
         window.onload = () => {
             const saved = localStorage.getItem('license');
-            if (saved) {
-                document.getElementById('license-input').value = saved;
-                handleLogin();
-            }
+            if (saved) { document.getElementById('license-input').value = saved; handleLogin(); }
         };
     </script>
 </body>
