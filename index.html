@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>BONA BEETLE PRO | 專業數位資產管理</title>
     
-    <!-- 引用樣式與函式庫 -->
+    <!-- 引用外部資源 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -23,8 +23,20 @@
         .glass-card { background: rgba(26, 26, 26, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .tab-active { color: var(--accent-gold); border-bottom: 2px solid var(--accent-gold); }
         .btn-primary { background: var(--accent-gold); color: black; font-weight: bold; }
-        input, select, textarea { background: #262626; border: 1px solid #333; color: white; border-radius: 8px; padding: 10px; outline: none; font-size: 13px; width: 100%; }
+        .btn-outline { border: 1px solid var(--accent-gold); color: var(--accent-gold); }
+        
+        input, select, textarea { 
+            background: #262626; 
+            border: 1px solid #333; 
+            color: white; 
+            border-radius: 8px; 
+            padding: 12px; 
+            outline: none; 
+            font-size: 14px;
+            width: 100%;
+        }
         input:focus, select:focus { border-color: var(--accent-gold); }
+        
         .safe-area-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 85px); }
         label { font-size: 11px; color: #9ca3af; font-weight: 500; margin-bottom: 4px; display: block; }
         
@@ -35,60 +47,62 @@
         
         #loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; }
         
-        /* 隱藏 PRO 功能的樣式 */
-        .pro-only-feature { display: none !important; }
-        .pro-unlocked .pro-only-feature { display: flex !important; }
-        .pro-unlocked .pro-only-tab { display: block !important; }
+        /* 權限控管樣式 */
+        .pro-only { display: none !important; }
+        .is-pro .pro-only { display: flex !important; }
+        .is-pro .pro-only-tab { display: block !important; }
         .pro-only-tab { display: none !important; }
     </style>
 </head>
 <body class="min-h-screen overflow-x-hidden">
 
+    <!-- 全域載入遮罩 -->
     <div id="loading-overlay">
         <div class="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin"></div>
-        <p class="text-gold font-bold text-xs" id="loading-text">權限驗證中...</p>
+        <p class="text-gold font-bold text-xs tracking-widest" id="loading-text">NOTION SYNCING...</p>
     </div>
 
-    <!-- 1. 授權登入介面 -->
+    <!-- 1. 授權登入介面 (與 User DB 1:1 對接) -->
     <div id="login-overlay" class="fixed inset-0 bg-[#0f0f0f] z-[999] flex flex-col items-center justify-center p-8">
-        <img src="logo.png" alt="Bona Logo" onerror="this.src='https://via.placeholder.com/80/d4af37/000000?text=B'" class="w-20 h-20 mb-6 rounded-2xl shadow-2xl">
-        <h1 class="text-xl font-bold mb-2 tracking-widest">BONA BEETLE</h1>
-        <p class="text-[10px] text-gray-500 uppercase tracking-[0.3em] mb-10">Elite Breeder System</p>
-        <div class="w-full max-w-xs space-y-4">
+        <img src="logo.png" alt="Bona Logo" onerror="this.src='https://via.placeholder.com/100/d4af37/000000?text=B'" class="w-24 h-24 mb-6 rounded-2xl shadow-2xl">
+        <h1 class="text-2xl font-bold mb-2 tracking-widest">BONA <span class="text-[var(--accent-gold)]">PRO</span></h1>
+        <p class="text-[10px] text-gray-500 uppercase tracking-[0.4em] mb-12">Elite Breeder System</p>
+        
+        <div class="w-full max-w-xs space-y-5">
             <div>
-                <label class="text-center w-full block mb-2 text-gray-500">輸入專屬授權碼 (區分大小寫)</label>
-                <!-- 修正：移除 uppercase class 以允許正常輸入大小寫 -->
-                <input type="text" id="license-input" placeholder="請輸入您的授權碼" class="text-center tracking-widest font-mono py-4 border-gray-800">
+                <label class="text-center w-full mb-2 text-gray-500">輸入專屬授權金鑰 (區分大小寫)</label>
+                <input type="text" id="license-input" placeholder="請輸入授權碼" class="text-center tracking-widest font-mono py-4 border-gray-800">
             </div>
-            <button onclick="handleLogin()" class="btn-primary w-full py-4 rounded-xl shadow-lg active:scale-95 transition-all">驗證並載入資產</button>
+            <button onclick="handleLogin()" class="btn-primary w-full py-4 rounded-xl shadow-lg active:scale-95 transition-all">登入並讀取雲端資產</button>
+            <p class="text-[9px] text-gray-600 text-center leading-relaxed">登入即代表您同意 BONA BEETLE 數據隱私協議<br>系統將根據 Plan_Type 自動解鎖對應功能</p>
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Header (動態品牌呈現) -->
     <header id="main-header" class="p-4 sticky top-0 z-50 glass-card flex justify-between items-center hidden">
         <div class="flex items-center gap-3">
-            <img id="breeder-logo" src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/40/d4af37/000000?text=Logo'" class="w-9 h-9 rounded-lg border border-gray-800">
+            <img id="breeder-logo" src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/40/d4af37/000000?text=Logo'" class="w-10 h-10 rounded-lg border border-gray-800">
             <div>
-                <h1 class="text-sm font-bold text-white" id="display-breeder-name">Bona User</h1>
+                <h1 class="text-sm font-bold text-white leading-tight" id="display-breeder-name">Bona User</h1>
                 <div class="flex items-center gap-1.5">
                     <div id="connection-status-dot" class="status-dot status-online"></div>
-                    <p id="connection-status-text" class="text-[8px] text-gray-500 uppercase">Notion Linked</p>
+                    <p id="connection-status-text" class="text-[8px] text-gray-500 uppercase tracking-tighter">Notion Connected</p>
                 </div>
             </div>
         </div>
         <div class="text-right">
-            <p class="text-[8px] text-gray-500 uppercase" id="display-plan-type">方案: ----</p>
+            <p class="text-[8px] text-gray-500 uppercase font-bold" id="display-plan-label">LITE VERSION</p>
             <p class="text-[10px] font-mono font-bold text-gold" id="display-user-id">ID: ----</p>
         </div>
     </header>
 
     <main id="main-content" class="p-4 safe-area-bottom space-y-6 hidden">
-        <!-- 導覽標籤頁 -->
+        <!-- 導覽選單 -->
         <nav class="flex justify-around border-b border-gray-800 text-[11px] overflow-x-auto whitespace-nowrap scrollbar-hide">
             <button onclick="switchView('dashboard')" id="tab-dashboard" class="px-3 py-2 tab-active">儀表板</button>
             <button onclick="switchView('records')" id="tab-records" class="px-3 py-2 text-gray-500">快速紀錄</button>
-            <button onclick="switchView('individuals')" id="tab-individuals" class="px-3 py-2 text-gray-500 pro-only-tab">批量入庫</button>
-            <button onclick="switchView('growth')" id="tab-growth" class="px-3 py-2 text-gray-500 pro-only-tab">生長曲線</button>
+            <button onclick="switchView('onboarding')" id="tab-onboarding" class="px-3 py-2 text-gray-500 pro-only-tab">批量入庫</button>
+            <button onclick="switchView('growth')" id="tab-growth" class="px-3 py-2 text-gray-500 pro-only-tab">生長分析</button>
             <button onclick="switchView('batches')" id="tab-batches" class="px-3 py-2 text-gray-500 pro-only-tab">批次管理</button>
         </nav>
 
@@ -96,51 +110,50 @@
         <section id="view-dashboard" class="space-y-4">
             <div class="grid grid-cols-3 gap-3">
                 <div class="glass-card p-3 rounded-xl text-center">
-                    <p class="text-[9px] text-gray-500">待換土</p>
+                    <p class="text-[9px] text-gray-500">待處理</p>
                     <p class="text-lg font-bold text-red-500" id="stat-pending">--</p>
                 </div>
                 <div class="glass-card p-3 rounded-xl text-center">
-                    <p class="text-[9px] text-gray-500">S級達成</p>
+                    <p class="text-[9px] text-gray-500">S級成就</p>
                     <p class="text-lg font-bold text-yellow-500" id="stat-elite">--</p>
                 </div>
                 <div class="glass-card p-3 rounded-xl text-center">
-                    <p class="text-[9px] text-gray-500">總資產筆數</p>
+                    <p class="text-[9px] text-gray-500">總筆數</p>
                     <p class="text-lg font-bold text-blue-500" id="stat-total">--</p>
                 </div>
             </div>
             
             <div class="glass-card p-4 rounded-2xl border-l-4 border-gold">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-xs font-bold flex items-center gap-2"><i data-lucide="bell" class="w-3.5 h-3.5 text-yellow-500"></i> 管家通知</h3>
-                    <button onclick="syncFromNotion()" class="text-[9px] text-gray-400 border border-gray-700 px-2 py-0.5 rounded">刷新數據</button>
+                    <h3 class="text-xs font-bold flex items-center gap-2"><i data-lucide="bell" class="w-3.5 h-3.5 text-yellow-500"></i> 智慧管家通知</h3>
+                    <button onclick="syncFromNotion()" class="text-[9px] text-gray-400 border border-gray-700 px-2 py-0.5 rounded">刷新同步</button>
                 </div>
                 <div id="butler-list" class="space-y-2">
-                    <p class="text-center text-[10px] text-gray-500 italic">正在獲取專屬資產數據...</p>
+                    <p class="text-center text-[10px] text-gray-500 italic py-4">正在同步您的雲端工作排程...</p>
                 </div>
             </div>
         </section>
 
-        <!-- View 2: 快速紀錄 -->
+        <!-- View 2: 快速紀錄 (對標流水帳全規格) -->
         <section id="view-records" class="hidden space-y-4">
             <div class="glass-card p-5 rounded-2xl space-y-5">
-                <h2 class="font-bold text-md tracking-tight">快速飼育日誌</h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="font-bold text-md tracking-tight">快速飼育日誌</h2>
+                    <button class="text-[10px] btn-outline px-3 py-1 rounded-full"><i class="fa-solid fa-qrcode mr-1"></i>掃描個體</button>
+                </div>
                 <div class="space-y-4">
                     <div>
-                        <label>選擇個體 ID</label>
+                        <label>個體 ID (僅顯示庫存)</label>
                         <select id="specimen-id-select"></select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label>紀錄狀態</label>
-                            <select id="mode-select-log"></select>
-                        </div>
-                        <div>
-                            <label>當前重量 (g)</label>
-                            <input type="number" id="log-weight" step="0.1" placeholder="0.0">
-                        </div>
+                        <div><label>目前狀態</label><select id="mode-select-log"></select></div>
+                        <div><label>重量 (g)</label><input type="number" id="log-weight" step="0.1" placeholder="0.0"></div>
                     </div>
+
+                    <!-- 固定規格區 -->
                     <div class="p-4 bg-black/40 rounded-xl border border-gray-800 space-y-4">
-                        <p class="text-[9px] text-yellow-500 font-bold uppercase tracking-widest border-b border-gray-800 pb-1">耗材規格</p>
+                        <p class="text-[9px] text-yellow-500 font-bold uppercase tracking-widest border-b border-gray-800 pb-1">耗材與容器規格</p>
                         <div class="grid grid-cols-2 gap-3">
                             <div><label>主食材</label><select id="sub-main-select"></select></div>
                             <div><label>副食材</label><select id="sub-sec-select"></select></div>
@@ -149,21 +162,21 @@
                             <div><label>容器種類</label><select id="box-type-select"></select></div>
                             <div><label>容器體積</label><select id="box-vol-select"></select></div>
                         </div>
-                        <div><label>添加量</label><select id="booster-select"></select></div>
+                        <div><label>登大蟲添加量</label><select id="booster-select"></select></div>
                     </div>
-                    <button onclick="submitLog()" class="btn-primary w-full py-4 rounded-xl shadow-lg">提交紀錄</button>
+                    <button onclick="submitLog()" class="btn-primary w-full py-4 rounded-xl shadow-lg active:scale-95">送出並更新 Notion</button>
                 </div>
             </div>
         </section>
 
-        <!-- View 3: 批量入庫 (PRO ONLY) -->
-        <section id="view-individuals" class="hidden space-y-4">
+        <!-- View 3: 批量入庫 (PRO 專屬) -->
+        <section id="view-onboarding" class="hidden space-y-4">
             <div class="glass-card p-5 rounded-2xl space-y-5">
-                <h2 class="font-bold text-md tracking-tight text-gold">新個體批量入庫 (PRO)</h2>
+                <h2 class="font-bold text-md tracking-tight text-gold">新個體批量入庫 (Smart ID)</h2>
                 <div class="space-y-4">
                     <div class="grid grid-cols-3 gap-3">
                         <div class="col-span-2">
-                            <label>歸屬批次 (Batch)</label>
+                            <label>歸屬批次 (從資料庫讀取)</label>
                             <select id="batch-select" onchange="previewID()"></select>
                         </div>
                         <div class="col-span-1">
@@ -171,37 +184,47 @@
                             <input type="number" id="input-quantity" value="1" min="1" oninput="previewID()" class="text-center font-bold">
                         </div>
                     </div>
+
+                    <div class="p-4 bg-white/5 rounded-xl border border-gray-800 space-y-3">
+                        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">初始數據設定 (第一筆日誌)</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label>初始狀態</label><select id="initial-mode-select"></select></div>
+                            <div><label>平均重量 (g)</label><input type="number" id="initial-weight" step="0.1" placeholder="0.0"></div>
+                        </div>
+                    </div>
+
                     <div class="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex justify-between items-center">
                         <div>
-                            <p class="text-[9px] text-yellow-500 font-bold">預覽編碼區間</p>
+                            <p class="text-[9px] text-yellow-500 font-bold uppercase">預覽編碼範疇</p>
                             <p id="id-preview-range" class="text-sm font-mono font-bold">尚未選取批次</p>
                         </div>
                         <button onclick="fetchNextSerial()" class="text-[9px] text-blue-400 underline">重刷序號</button>
                     </div>
-                    <button onclick="handleOnboarding()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg">啟動自動編碼並入庫</button>
+                    <button onclick="handleOnboarding()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg">啟動自動編碼與入庫</button>
                 </div>
             </div>
         </section>
 
-        <!-- 佔位 View -->
+        <!-- 其他功能佔位區 -->
         <section id="view-growth" class="hidden glass-card p-12 rounded-2xl text-center text-xs text-gray-600">正在生成生長曲線圖表...</section>
         <section id="view-batches" class="hidden glass-card p-12 rounded-2xl text-center text-xs text-gray-600">正在抓取批次管理清單...</section>
 
     </main>
 
-    <!-- Footer -->
+    <!-- Footer 按鈕 -->
     <footer id="main-footer" class="fixed bottom-0 left-0 right-0 glass-card p-4 border-t border-gray-800 flex justify-around items-center hidden">
         <button onclick="switchView('dashboard')" id="btn-dashboard" class="flex flex-col items-center gap-1 text-gold"><i class="fa-solid fa-house text-lg"></i><span class="text-[8px]">儀表板</span></button>
         <button onclick="switchView('records')" id="btn-records" class="flex flex-col items-center gap-1 text-gray-500"><i class="fa-solid fa-plus-circle text-lg"></i><span class="text-[8px]">快速紀錄</span></button>
-        <button onclick="switchView('individuals')" id="btn-individuals" class="pro-only-feature flex-col items-center gap-1 text-gray-500"><i class="fa-solid fa-beetle text-lg"></i><span class="text-[8px]">批量入庫</span></button>
-        <button onclick="switchView('batches')" id="btn-batches" class="pro-only-feature flex-col items-center gap-1 text-gray-500"><i class="fa-solid fa-layer-group text-lg"></i><span class="text-[8px]">批次管理</span></button>
+        <button onclick="switchView('onboarding')" id="btn-onboarding" class="pro-only flex flex-col items-center gap-1 text-gray-500"><i class="fa-solid fa-beetle text-lg"></i><span class="text-[8px]">批量入庫</span></button>
+        <button onclick="switchView('batches')" id="btn-batches" class="pro-only flex flex-col items-center gap-1 text-gray-500"><i class="fa-solid fa-layer-group text-lg"></i><span class="text-[8px]">批次設定</span></button>
     </footer>
 
     <script>
-        // --- 核心安全配置 ---
+        // --- 核心系統配置 ---
         const PRO_WEBHOOK_URL = "https://hook.us2.make.com/3t09tt0d685yi05vfbfjqha01l4mg4pu";
         const MAKE_API_KEY = "BonaPro-Safe-19790514";
 
+        // --- 全規格固定選單 (規格鎖定) ---
         const FIXED_DICT = {
             modes: ["卵", "L1", "L2", "L3前期", "L3中期", "L3後期", "前蛹", "化蛹", "成功羽化", "羽化失敗", "蟄伏中", "售出", "死亡"],
             substrates: ["BONA木屑", "AKD木屑", "BEVO木屑", "P2木屑", "金剛木屑", "好蟲多木屑", "白羊木屑", "蟲心木屑", "星空木屑", "自發木屑", "蟲植木屑", "小糕菌", "雲芝菌", "育成土", "育成木屑", "袖珍菌", "重壓菌", "廢木屑", "產房木屑", "AD完熟木屑", "其他"],
@@ -210,10 +233,16 @@
             boosters: ["無添加", "10g/10L", "20g/10L", "極限組"]
         };
 
+        /**
+         * 統一通訊邏輯 (包含 API Key 與數據隔離 ID)
+         */
         async function callWebhook(action, payload) {
             const license = localStorage.getItem('license');
             const userId = localStorage.getItem('userId');
+            
             const data = { action, license, userId, ...payload };
+            console.log(`[API Call] ${action}`, data);
+
             try {
                 const response = await fetch(PRO_WEBHOOK_URL, {
                     method: 'POST',
@@ -222,63 +251,200 @@
                 });
                 const text = await response.text();
                 try { return JSON.parse(text); } catch(e) { return { status: text }; }
-            } catch (e) { return null; }
+            } catch (e) {
+                console.error("Connection error:", e);
+                return null;
+            }
         }
 
         /**
-         * 登入邏輯：移除強制轉換大寫，完整保留原始輸入字串
+         * 使用者登入與權限檢查
          */
         async function handleLogin() {
             const inputField = document.getElementById('license-input');
-            const input = inputField.value.trim(); // 保留原始大小寫，僅移除前後空格
-            
+            const input = inputField.value.trim(); // 保留原始大小寫
             if (input.length < 5) return alert("授權碼格式錯誤");
 
-            showLoading(true, "正在驗證權限與方案類型...");
+            showLoading(true, "身分與方案驗證中...");
             const result = await callWebhook("VERIFY_USER", { license: input });
             
             showLoading(false);
-            if (result && result.success) {
-                // 方案檢查
+            if (result && result.success && result.status === "active") {
+                // 1. 方案權限控管
                 if (result.planType !== 'PRO') {
+                    // 非 PRO 用戶執行額外檢查
                     const now = new Date();
                     const expiry = result.expiryDate ? new Date(result.expiryDate) : null;
-                    if (expiry && now > expiry) return alert("❌ 您的使用期限已屆滿。");
-                    if (result.usedCount >= result.maxQuota) return alert("❌ 您的資產額度已達上限。");
-                    document.body.classList.remove('pro-unlocked');
+                    if (expiry && now > expiry) return alert("❌ 您的授權已過期，請聯絡管理員續費。");
+                    if (result.usedCount >= result.maxQuota) return alert("❌ 您已達到資產額度上限，請升級 PRO 方案。");
+                    document.body.classList.remove('is-pro');
                 } else {
-                    document.body.classList.add('pro-unlocked');
+                    // PRO 用戶解鎖全功能
+                    document.body.classList.add('is-pro');
                 }
 
-                localStorage.setItem('license', input); // 儲存包含大小寫的原始 Key
+                // 2. 本地持久化儲存
+                localStorage.setItem('license', input);
                 localStorage.setItem('userId', result.userId); 
                 localStorage.setItem('planType', result.planType || 'LITE');
                 
+                // 3. UI 品牌注入
                 document.getElementById('display-breeder-name').innerText = result.breederName || "Bona User";
-                document.getElementById('display-plan-type').innerText = "方案: " + (result.planType || "LITE");
                 document.getElementById('display-user-id').innerText = "ID: " + result.userId;
+                document.getElementById('display-plan-label').innerText = (result.planType === 'PRO' ? "👑 PRO VERSION" : "LITE VERSION");
                 if(result.logoUrl) document.getElementById('breeder-logo').src = result.logoUrl;
                 
+                // 進入主系統
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('main-header').classList.remove('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 document.getElementById('main-footer').classList.remove('hidden');
+                
                 initData();
             } else {
-                alert("❌ 驗證失敗：" + (result.message || "授權碼不存在（請注意大小寫）"));
+                alert("❌ 驗證失敗：" + (result.message || "授權碼不存在或已失效。"));
             }
         }
 
+        /**
+         * 數據同步 (嚴格數據隔離)
+         */
+        async function syncFromNotion() {
+            showLoading(true, "正在抓取個人專屬資產...");
+            const result = await callWebhook("SYNC_DATA", {});
+            showLoading(false);
+
+            if (result && result.success) {
+                // 更新儀表板統計
+                if (result.stats) {
+                    document.getElementById('stat-pending').innerText = result.stats.pending || 0;
+                    document.getElementById('stat-elite').innerText = result.stats.elite || 0;
+                    document.getElementById('stat-total').innerText = result.stats.total || 0;
+                }
+                // 注入真實批次與個體
+                if (result.batches) populateSelect('batch-select', result.batches, "請選取歸屬批次");
+                if (result.specimens) populateSelect('specimen-id-select', result.specimens, "搜尋個體編號");
+                
+                // 注入管家提醒
+                if (result.alerts) {
+                    const list = document.getElementById('butler-list');
+                    list.innerHTML = result.alerts.map(a => `
+                        <div class="p-3 bg-red-900/10 rounded-lg flex justify-between items-center border border-red-900/20">
+                            <span class="text-[10px] text-gray-300 font-medium">${a.text}</span>
+                            <button onclick="handleButlerAction('${a.id}')" class="text-[9px] bg-red-500 text-white px-2 py-1 rounded">前往</button>
+                        </div>
+                    `).join('') || '<p class="text-center text-[10px] text-gray-600 py-4 italic">暫無待辦通知</p>';
+                }
+                updateStatus(true);
+            } else {
+                updateStatus(false);
+            }
+        }
+
+        /**
+         * 下拉選單初始化
+         */
+        function initData() {
+            populateSelect('mode-select-log', FIXED_DICT.modes, "狀態");
+            populateSelect('initial-mode-select', FIXED_DICT.modes, "初始狀態");
+            populateSelect('sub-main-select', FIXED_DICT.substrates, "主食材");
+            populateSelect('sub-sec-select', FIXED_DICT.substrates, "副食材");
+            populateSelect('box-type-select', FIXED_DICT.boxTypes, "容器種類");
+            populateSelect('box-vol-select', FIXED_DICT.boxVols, "體積規格");
+            populateSelect('booster-select', FIXED_DICT.boosters, "添加量");
+            if (window.lucide) lucide.createIcons();
+            syncFromNotion();
+        }
+
+        /**
+         * 提交紀錄
+         */
+        async function submitLog() {
+            const specimenId = document.getElementById('specimen-id-select').value;
+            if(!specimenId) return alert("請選定個體");
+            
+            showLoading(true, "日誌同步中...");
+            const result = await callWebhook("SUBMIT_LOG", {
+                specimenId,
+                mode: document.getElementById('mode-select-log').value,
+                weight: document.getElementById('log-weight').value,
+                subMain: document.getElementById('sub-main-select').value,
+                subSec: document.getElementById('sub-sec-select').value,
+                boxType: document.getElementById('box-type-select').value,
+                boxVol: document.getElementById('box-vol-select').value,
+                booster: document.getElementById('booster-select').value,
+                timestamp: new Date().toISOString()
+            });
+            showLoading(false);
+            if(result && result.success) {
+                alert("✅ 紀錄同步完成！");
+                document.getElementById('log-weight').value = "";
+            }
+        }
+
+        /**
+         * 批量入庫 (PRO 限定功能)
+         */
+        async function handleOnboarding() {
+            const batchId = document.getElementById('batch-select').value;
+            if(!batchId) return alert("請選取批次");
+            
+            showLoading(true, "執行入庫指令...");
+            const result = await callWebhook("BATCH_ONBOARD", { 
+                batchId, 
+                quantity: document.getElementById('input-quantity').value,
+                initialMode: document.getElementById('initial-mode-select').value,
+                initialWeight: document.getElementById('initial-weight').value
+            });
+            showLoading(false);
+            if(result && result.success) {
+                alert(`✅ 批量入庫指令已發送！`);
+                switchView('dashboard');
+                syncFromNotion();
+            }
+        }
+
+        /**
+         * 智慧序號預取
+         */
+        async function fetchNextSerial() {
+            const batchId = document.getElementById('batch-select').value;
+            if(!batchId) return;
+            showLoading(true, "查詢最新 ID...");
+            const result = await callWebhook("GET_NEXT_SERIAL", { batchId });
+            showLoading(false);
+            if(result && result.nextSerial) {
+                localStorage.setItem('next_serial_' + batchId, result.nextSerial);
+                previewID();
+            }
+        }
+
+        /**
+         * 工具函式
+         */
+        function populateSelect(id, options, placeholder) {
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.innerHTML = `<option value="">-- ${placeholder} --</option>`; 
+            options.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value || opt;
+                o.innerText = opt.text || opt;
+                el.appendChild(o);
+            });
+        }
+
         function switchView(viewId) {
-            const currentPlan = localStorage.getItem('planType');
-            const proViews = ['individuals', 'growth', 'batches'];
-            if (currentPlan !== 'PRO' && proViews.includes(viewId)) {
-                alert("🔒 此為 PRO 專業版專屬功能。");
+            const isPro = localStorage.getItem('planType') === 'PRO';
+            const proViews = ['onboarding', 'growth', 'batches'];
+            
+            if (!isPro && proViews.includes(viewId)) {
+                alert("🔒 此為 PRO 專業版專屬功能，請升級您的方案。");
                 return;
             }
+
             document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
-            const target = document.getElementById('view-' + viewId);
-            if(target) target.classList.remove('hidden');
+            document.getElementById('view-' + viewId).classList.remove('hidden');
             
             document.querySelectorAll('footer button').forEach(b => {
                 b.classList.remove('text-gold'); b.classList.add('text-gray-500');
@@ -290,96 +456,6 @@
                 b.classList.remove('tab-active', 'text-gray-500');
                 if (b.id === 'tab-' + viewId) b.classList.add('tab-active');
                 else b.classList.add('text-gray-500');
-            });
-        }
-
-        async function syncFromNotion() {
-            showLoading(true, "同步數位資產庫...");
-            const result = await callWebhook("SYNC_DATA", {});
-            showLoading(false);
-            if (result && result.success) {
-                if (result.stats) {
-                    document.getElementById('stat-pending').innerText = result.stats.pending || 0;
-                    document.getElementById('stat-elite').innerText = result.stats.elite || 0;
-                    document.getElementById('stat-total').innerText = result.stats.total || 0;
-                }
-                if (result.batches) populateSelect('batch-select', result.batches, "選取批次");
-                if (result.specimens) populateSelect('specimen-id-select', result.specimens, "搜尋個體 ID");
-                if (result.alerts) {
-                    const list = document.getElementById('butler-list');
-                    list.innerHTML = result.alerts.map(a => `
-                        <div class="p-3 bg-red-900/10 rounded-lg flex justify-between items-center border border-red-900/20">
-                            <span class="text-[10px]">${a.text}</span>
-                            <button onclick="handleButlerAction('${a.id}')" class="text-[9px] bg-red-500 text-white px-2 py-1 rounded">前往</button>
-                        </div>
-                    `).join('') || '<p class="text-center text-[10px] text-gray-500">目前無提醒</p>';
-                }
-                updateStatus(true);
-            } else {
-                updateStatus(false);
-            }
-        }
-
-        function initData() {
-            populateSelect('mode-select-log', FIXED_DICT.modes, "狀態");
-            populateSelect('sub-main-select', FIXED_DICT.substrates, "主食材");
-            populateSelect('sub-sec-select', FIXED_DICT.substrates, "副食材");
-            populateSelect('box-type-select', FIXED_DICT.boxTypes, "容器");
-            populateSelect('box-vol-select', FIXED_DICT.boxVols, "體積");
-            populateSelect('booster-select', FIXED_DICT.boosters, "添加量");
-            if (window.lucide) lucide.createIcons();
-            syncFromNotion();
-        }
-
-        async function submitLog() {
-            const specimenId = document.getElementById('specimen-id-select').value;
-            if(!specimenId) return alert("請選定個體");
-            showLoading(true, "同步紀錄...");
-            const result = await callWebhook("SUBMIT_LOG", {
-                specimenId,
-                mode: document.getElementById('mode-select-log').value,
-                weight: document.getElementById('log-weight').value,
-                subMain: document.getElementById('sub-main-select').value,
-                subSec: document.getElementById('sub-sec-select').value,
-                boxType: document.getElementById('box-type-select').value,
-                boxVol: document.getElementById('box-vol-select').value,
-                booster: document.getElementById('booster-select').value
-            });
-            showLoading(false);
-            if(result && result.success) alert("✅ 紀錄同步成功！");
-        }
-
-        async function handleOnboarding() {
-            const batchId = document.getElementById('batch-select').value;
-            if(!batchId) return alert("請選取批次");
-            showLoading(true, "執行入庫...");
-            const result = await callWebhook("BATCH_ONBOARD", { 
-                batchId, 
-                quantity: document.getElementById('input-quantity').value 
-            });
-            showLoading(false);
-            if(result && result.success) { alert("✅ 入庫指令已發送！"); syncFromNotion(); }
-        }
-
-        async function fetchNextSerial() {
-            const batchId = document.getElementById('batch-select').value;
-            if(!batchId) return;
-            const result = await callWebhook("GET_NEXT_SERIAL", { batchId });
-            if(result && result.nextSerial) {
-                localStorage.setItem('next_serial_' + batchId, result.nextSerial);
-                previewID();
-            }
-        }
-
-        function populateSelect(id, options, placeholder) {
-            const el = document.getElementById(id);
-            if(!el) return;
-            el.innerHTML = `<option value="">-- ${placeholder} --</option>`; 
-            options.forEach(opt => {
-                const o = document.createElement('option');
-                o.value = opt.value || opt;
-                o.innerText = opt.text || opt;
-                el.appendChild(o);
             });
         }
 
@@ -402,7 +478,14 @@
 
         function updateStatus(isOnline) {
             const dot = document.getElementById('connection-status-dot');
-            if(dot) dot.className = isOnline ? "status-dot status-online" : "status-dot status-offline";
+            const text = document.getElementById('connection-status-text');
+            if(isOnline) {
+                dot.className = "status-dot status-online";
+                text.innerText = "Database Connected";
+            } else {
+                dot.className = "status-dot status-offline";
+                text.innerText = "Sync Required";
+            }
         }
 
         window.onload = () => {
