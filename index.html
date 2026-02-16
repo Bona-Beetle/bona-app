@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
@@ -27,9 +28,25 @@
         .safe-area-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 80px); }
         label { font-size: 0.75rem; color: #9ca3af; font-weight: 500; margin-bottom: 0.25rem; display: block; }
         .text-gold { color: var(--accent-gold) !important; }
+
+        /* Scanner Modal */
+        #scanner-modal { display: none; position: fixed; inset: 0; background: black; z-index: 100; flex-direction: column; }
+        #reader { width: 100% !important; height: 70vh !important; }
     </style>
 </head>
 <body class="min-h-screen">
+
+    <!-- 掃描標籤視窗 (Scanner Modal) -->
+    <div id="scanner-modal">
+        <div class="p-6 flex justify-between items-center bg-zinc-900">
+            <h2 class="font-bold text-gold">掃描個體標籤</h2>
+            <button onclick="stopScanner()" class="text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="reader"></div>
+        <div class="p-8 text-center text-gray-400 text-sm">
+            請將 QR Code 對準鏡頭中央進行自動識別
+        </div>
+    </div>
 
     <!-- Top Navigation -->
     <header class="p-4 sticky top-0 z-50 glass-card flex justify-between items-center">
@@ -72,9 +89,16 @@
                     <p class="text-xl font-bold text-blue-500">4</p>
                 </div>
             </div>
+
+            <!-- 可點擊處理的智慧管家 -->
             <div class="glass-card p-4 rounded-2xl">
                 <h3 class="text-sm font-bold mb-3 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-yellow-500"></i> 智慧管家建議</h3>
-                <div class="p-3 bg-white/5 rounded-lg text-xs">DHH-2024-B01-08 已逾 60 天未更換木屑</div>
+                <div class="space-y-2">
+                    <div class="p-3 bg-white/5 rounded-lg flex justify-between items-center">
+                        <span class="text-xs">DHH-2024-B01-08 已逾 60 天未更換木屑</span>
+                        <button onclick="handleButlerAction('DHH-2024-B01-08')" class="text-[10px] bg-red-900/40 text-red-400 px-3 py-1.5 rounded-lg border border-red-800/50 active:scale-95 transition-all">立即換土</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -83,14 +107,19 @@
             <div class="glass-card p-5 rounded-2xl space-y-5">
                 <div class="flex justify-between items-center">
                     <h2 class="font-bold text-lg">新增飼育日誌</h2>
-                    <button class="text-xs text-gray-400 border border-gray-700 px-3 py-1 rounded-full"><i class="fa-solid fa-qrcode mr-1"></i>掃描</button>
+                    <button onclick="startScanner()" class="text-xs text-gold border border-gold/30 px-3 py-1.5 rounded-full bg-gold/5 active:scale-95 transition-all">
+                        <i class="fa-solid fa-qrcode mr-1"></i>掃描標籤
+                    </button>
                 </div>
+                
                 <div class="flex flex-col gap-4">
                     <div>
                         <label>個體 ID</label>
-                        <select class="w-full">
-                            <option>DHH-2026-B01-01</option>
-                            <option>DHH-2026-B01-02</option>
+                        <select id="specimen-id-select" class="w-full">
+                            <option value="">請選擇或掃描標籤...</option>
+                            <option value="DHH-2024-B01-08">DHH-2024-B01-08 (今日建議)</option>
+                            <option value="DHH-2026-B01-01">DHH-2026-B01-01</option>
+                            <option value="DHH-2026-B01-02">DHH-2026-B01-02</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
@@ -103,54 +132,30 @@
                             <input type="number" step="0.1" placeholder="0.0" class="w-full">
                         </div>
                     </div>
-                    <button class="btn-primary w-full py-4 rounded-xl">提交單筆紀錄</button>
+                    <button class="btn-primary w-full py-4 rounded-xl shadow-lg active:scale-95">提交單筆紀錄</button>
                 </div>
             </div>
         </section>
 
-        <!-- 3. 個體入庫 (Smart Onboarding - 優化版) -->
+        <!-- 3. 個體入庫 (Smart Onboarding) -->
         <section id="view-individuals" class="hidden space-y-4">
             <div class="glass-card p-5 rounded-2xl space-y-5">
-                <div class="flex justify-between items-center">
-                    <h2 class="font-bold text-lg">新個體入庫 (批量生成)</h2>
-                    <i data-lucide="info" class="w-4 h-4 text-gray-500"></i>
-                </div>
-
+                <h2 class="font-bold text-lg">新個體入庫 (批量生成)</h2>
                 <div class="space-y-4">
-                    <!-- 第一步：批次與數量 -->
                     <div class="grid grid-cols-3 gap-3">
                         <div class="col-span-2">
-                            <label>選取批次 (Batch)</label>
+                            <label>選取批次</label>
                             <select id="batch-select" onchange="previewID()" class="w-full text-sm">
                                 <option value="">請選擇...</option>
                                 <option value="DHH-2026-B01">2026-DHH-B01 (長戟)</option>
-                                <option value="DTS-2026-B01">2026-DTS-B01 (蘇門)</option>
                             </select>
                         </div>
                         <div class="col-span-1">
-                            <label>入庫數量</label>
+                            <label>數量</label>
                             <input type="number" id="input-quantity" value="1" min="1" oninput="previewID()" class="w-full text-center font-bold">
                         </div>
                     </div>
 
-                    <!-- 第二步：首筆紀錄數據 (新增加內容) -->
-                    <div class="p-4 bg-white/5 rounded-xl border border-gray-800 space-y-3">
-                        <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest">初始數據設定 (首筆 Log)</p>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label>初始狀態</label>
-                                <select id="initial-mode-select" class="w-full text-xs">
-                                    <!-- 由腳本注入 -->
-                                </select>
-                            </div>
-                            <div>
-                                <label>初始重量 (g)</label>
-                                <input type="number" id="initial-weight" step="0.1" placeholder="0.0" class="w-full text-xs">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 智慧預覽區域 -->
                     <div class="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
                         <div class="flex justify-between items-end">
                             <div>
@@ -162,21 +167,10 @@
                                 <p id="total-count-preview" class="text-lg font-bold">--</p>
                             </div>
                         </div>
-                        <p class="text-[10px] text-gray-500 mt-2 italic">* Make.com 會自動計算起始序號並執行批量寫入</p>
                     </div>
 
-                    <button class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="box"></i> 啟動批量入庫 & 生成紀錄
-                    </button>
+                    <button class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl">啟動批量入庫</button>
                 </div>
-            </div>
-        </section>
-
-        <!-- 4. 批次管理 -->
-        <section id="view-batches" class="hidden space-y-4">
-            <div class="glass-card p-5 rounded-2xl">
-                <h2 class="font-bold text-lg">批次管理</h2>
-                <p class="text-sm text-gray-500">模組優化中...</p>
             </div>
         </section>
 
@@ -193,12 +187,12 @@
     <script>
         const DICT = {
             modes: ["卵", "L1", "L2", "L3前期", "L3中期", "L3後期", "化蛹", "成功羽化", "羽化失敗"],
-            // 食材等其他字典可視需要擴充
         };
+
+        let html5QrCode;
 
         function initData() {
             populateSelect('mode-select-log', DICT.modes, "狀態");
-            populateSelect('initial-mode-select', DICT.modes, "初始狀態");
             if (window.lucide) lucide.createIcons();
         }
 
@@ -210,6 +204,68 @@
                 const o = document.createElement('option');
                 o.value = opt; o.innerText = opt; el.appendChild(o);
             });
+        }
+
+        /**
+         * 掃描功能啟動
+         */
+        function startScanner() {
+            document.getElementById('scanner-modal').style.display = 'flex';
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                console.log("掃描成功:", decodedText);
+                // 處理掃描到的 ID
+                processScannedID(decodedText);
+                stopScanner();
+            }).catch(err => {
+                console.warn("掃描器啟動失敗:", err);
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-modal').style.display = 'none';
+                }).catch(err => console.error(err));
+            } else {
+                document.getElementById('scanner-modal').style.display = 'none';
+            }
+        }
+
+        /**
+         * 處理掃描到的 ID 並填入表單
+         */
+        function processScannedID(id) {
+            // 切換到紀錄分頁
+            switchView('records');
+            
+            // 嘗試在選單中選中該 ID
+            const select = document.getElementById('specimen-id-select');
+            
+            // 如果 ID 不在預設選項中，動態新增一個
+            let exists = Array.from(select.options).some(opt => opt.value === id);
+            if (!exists) {
+                const newOpt = document.createElement('option');
+                newOpt.value = id;
+                newOpt.text = id + " (掃描成功)";
+                select.appendChild(newOpt);
+            }
+            select.value = id;
+            
+            // 震動回饋 (如果手機支援)
+            if (window.navigator.vibrate) window.navigator.vibrate(100);
+        }
+
+        /**
+         * 處理智慧管家「立即換土」動作
+         */
+        function handleButlerAction(id) {
+            processScannedID(id);
+            // 自動選定狀態為「L3 中期」(可根據訊息邏輯微調)
+            const modeSelect = document.getElementById('mode-select-log');
+            if (modeSelect) modeSelect.value = "L3中期";
         }
 
         function switchView(viewId) {
@@ -230,9 +286,6 @@
             });
         }
 
-        /**
-         * 預覽 ID 生成區間 (Smart Batch Preview)
-         */
         function previewID() {
             const batch = document.getElementById('batch-select').value;
             const qty = parseInt(document.getElementById('input-quantity').value) || 0;
@@ -245,10 +298,8 @@
                 return;
             }
 
-            // 模擬後端邏輯：假設目前該批次已有 14 隻，則新序號從 15 開始
             const startSerial = 15; 
             const endSerial = startSerial + qty - 1;
-
             const formatSerial = (num) => num < 10 ? "0" + num : num;
             
             if (qty === 1) {
@@ -256,7 +307,6 @@
             } else {
                 previewRange.innerText = `${batch}-${formatSerial(startSerial)} ~ ${formatSerial(endSerial)}`;
             }
-            
             totalPreview.innerText = qty + " 隻";
         }
 
